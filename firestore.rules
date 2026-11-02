@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Only the single admin account (Viraj Kadam, mobile 8806431723) can read or change candidates.
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == '8806431723@candidate-profile.app';
+    }
+    match /candidates/{id} {
+      allow read, create, delete: if isAdmin();
+      // Once the candidate has signed, the profile is locked: only the phase (and its timestamp) may change.
+      allow update: if isAdmin() && (
+        resource.data.get('signedAt', '') == '' ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['phase', 'updatedAt'])
+      );
+    }
+  }
+}
