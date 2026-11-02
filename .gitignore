@@ -22,3 +22,27 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+Thumbs.db
+
+# Environment / secrets (never commit)
+.env
+.env.*
+!.env.example
+
+# Firebase CLI (if used later for deploys)
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# Test & coverage output
+coverage/
+*.lcov
+
+# Temporary test/preview pages used while developing
+__test.html
+src/__test.*
+public/__shot.html
+
+# Local tool settings
+.claude/settings.local.json

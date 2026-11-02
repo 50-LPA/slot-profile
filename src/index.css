@@ -7,11 +7,15 @@
 
 body { @apply bg-gray-50; }
 
+/* No transitions or animations anywhere: every change shows instantly. */
+*, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+
 @page { size: A4; margin: 0; }
 @media print {
-  body { background: white !important; }
+  /* Strictly one A4 page: the printout is capped at a single sheet, so nothing can spill onto page 2. */
+  html, body { width: 210mm; height: 297mm; margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: white !important; }
   .no-print { display: none !important; }
-  .sheet { box-shadow: none !important; margin: 0 !important; }
+  .sheet { box-shadow: none !important; margin: 0 !important; height: 296.8mm !important; break-inside: avoid; break-after: avoid; page-break-after: avoid; }
 }
 
 /* Fill-in fields look like plain text on paper */

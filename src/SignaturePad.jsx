@@ -67,7 +67,7 @@ export default function SignaturePad({ onSave, onClose }) {
   const clear = () => { strokes.current = []; redraw(); setCount(0) }
   const save = () => onSave(exportSignature(strokes.current).url) // cropped to the ink, under 10 KB
 
-  const btn = 'flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-bold transition disabled:opacity-40'
+  const btn = 'flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-bold disabled:opacity-40'
   return (
     <div className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 font-lato" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div ref={box} role="dialog" aria-modal="true" aria-label="Candidate signature"
@@ -104,9 +104,6 @@ export default function SignaturePad({ onSave, onClose }) {
           </div>
         </div>
 
-        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          After the profile is saved with this signature it is locked and can no longer be edited.
-        </p>
         <label className="mt-3 flex items-start gap-2 text-sm text-gray-700">
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-4 w-4 accent-emerald-600" />
           I, the candidate, have read and agree to all the terms on this form.

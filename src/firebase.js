@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app'
-import { getFirestore } from 'firebase/firestore'
-import { getAuth } from 'firebase/auth'
+// Lite Firestore (plain fetch, no realtime/offline cache) and auth without popup/redirect code: far smaller bundle.
+import { getFirestore } from 'firebase/firestore/lite'
+import { browserLocalPersistence, initializeAuth } from 'firebase/auth'
 
 // Public web config (safe to ship). Access is controlled by Firebase Auth + firestore.rules: only the admin account can read or write.
 const app = initializeApp({
@@ -13,7 +14,7 @@ const app = initializeApp({
 })
 
 export const db = getFirestore(app)
-export const auth = getAuth(app)
+export const auth = initializeAuth(app, { persistence: browserLocalPersistence })
 
 // The admin logs in with a mobile number; Firebase Auth needs an email, so the number maps to this address.
 export const loginEmail = (phone) => `${phone.trim()}@candidate-profile.app`

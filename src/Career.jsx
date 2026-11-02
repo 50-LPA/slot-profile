@@ -1,5 +1,6 @@
 import { layout, monthLabel, span, toIdx } from './career.js'
 import { ICONS, Icon } from './icons.jsx'
+import { Button } from './ui.jsx'
 
 const COLORS = [
   'border-purple-400 bg-purple-50 text-purple-900',
@@ -64,12 +65,12 @@ export function CareerTimeline({ passOut, companies }) {
   )
 }
 
-const input = 'h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-[13px] text-gray-800 outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-100 disabled:bg-gray-50 disabled:text-gray-400'
+const input = 'h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-[13px] text-gray-800 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 disabled:bg-gray-50 disabled:text-gray-400'
 // Narrow: "# name ×" then "joining exit present" below. Wide (@xl): # · name · joining · exit · present · ×.
 const row = 'grid grid-cols-[20px_minmax(0,1fr)_minmax(0,1fr)_24px] items-center gap-1.5 @xl:grid-cols-[20px_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_44px_24px]'
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-const YEARS = Array.from({ length: 2026 - 2010 + 1 }, (_, i) => String(2010 + i))
+const YEARS = Array.from({ length: new Date().getFullYear() - 2010 + 1 }, (_, i) => String(2010 + i)) // 2010 → this year
 
 // Month dropdown then year dropdown, stored as "YYYY-MM" (half-filled stays "YYYY-" / "-MM" and is ignored by the timeline).
 function MonthYear({ value = '', onChange, label, disabled, invalid }) {
@@ -104,25 +105,22 @@ export function CareerFields({ passOut, companies, onPassOut, onCompanies }) {
 
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold text-gray-600">Company details ({companies.length})</span>
-        <button type="button" onClick={() => onCompanies([...companies, { name: '', from: '', to: '', present: false }])}
-          className="flex h-7 items-center gap-1 rounded-full bg-emerald-500 px-3 text-xs font-bold text-white shadow-sm hover:bg-emerald-600">
-          <Icon d={ICONS.plus} className="h-3.5 w-3.5" /> Add company
-        </button>
+        <Button size="sm" icon={ICONS.plus} onClick={() => onCompanies([...companies, { name: '', from: '', to: '', present: false }])}>Add company</Button>
       </div>
 
-      {companies.length === 0 && <p className="rounded-xl border border-dashed border-gray-300 p-4 text-center text-xs text-gray-400">No companies yet.</p>}
+      {companies.length === 0 && <p className="py-2 text-xs text-gray-400">No companies yet. Click “Add company”.</p>}
 
       {/* One compact row per company; column labels shown once. Falls back to three lines when the panel is narrow. */}
       {companies.length > 0 && (
         <div className="@container">
-          <div className={`${row} hidden px-2 text-[11px] font-bold text-gray-500 @xl:grid`}>
+          <div className={`${row} hidden border-b border-gray-200 pb-1 text-[11px] font-bold text-gray-500 @xl:grid`}>
             <span>#</span><span>Company name</span><span>Joining</span><span>Exit</span><span className="text-center">Present</span><span />
           </div>
-          <div className="space-y-1.5">
+          <div>
             {companies.map((c, i) => {
               const badExit = !c.present && toIdx(c.to) !== null && toIdx(c.from) !== null && toIdx(c.to) < toIdx(c.from)
               return (
-                <div key={i} className={`${row} rounded-lg border bg-white p-2 shadow-sm ${badExit ? 'border-red-300' : 'border-gray-200'}`}>
+                <div key={i} className={`${row} border-b border-gray-100 py-2 ${badExit ? 'bg-red-50' : ''}`}>
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-purple-100 text-[11px] font-bold text-purple-600">{i + 1}</span>
                   <input value={c.name} onChange={(e) => update(i, { name: e.target.value })} placeholder="Company name" aria-label={`Company ${i + 1} name`} className={`${input} col-span-2 @xl:col-span-1`} />
                   <span className="col-span-2 col-start-1 row-start-2 @xl:col-span-1 @xl:col-auto @xl:row-auto">
