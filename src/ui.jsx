@@ -12,7 +12,7 @@ export function Page({ crumbs, children }) {
   )
 }
 
-export function Breadcrumbs({ items }) {
+function Breadcrumbs({ items }) {
   return (
     <nav aria-label="Breadcrumb" className="mb-3 flex flex-wrap items-center gap-1 text-xs text-gray-500">
       <a href="#/" className="flex items-center gap-1 hover:text-purple-600"><Icon d={ICONS.home} className="h-3.5 w-3.5" /> Home</a>

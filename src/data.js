@@ -1,7 +1,7 @@
 // Candidate records in Firestore, plus one in-memory copy shared by the home page and the list.
 import { useEffect, useState } from 'react'
 import {
-  Timestamp, addDoc, collection, deleteDoc, deleteField, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, where,
+  Timestamp, addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, where,
 } from 'firebase/firestore/lite'
 import { db, withTimeout } from './firebase.js'
 import { confirmAsk, toast } from './toast.jsx'
@@ -16,7 +16,7 @@ const publish = (rows) => { cache = rows; subscribers.forEach((fn) => fn(rows)) 
 export const clearCache = () => { cache = null } // on logout
 export const cached = (id) => cache?.find((r) => r.id === id)
 
-export const loadAll = () =>
+const loadAll = () =>
   withTimeout(getDocs(query(candidates, orderBy('updatedAt', 'desc'))))
     .then((snap) => publish(snap.docs.map((d) => ({ id: d.id, ...d.data() }))))
 
@@ -44,13 +44,13 @@ export async function findByPhone(phone, exceptId) {
   return other ? { id: other.id, ...other.data() } : null
 }
 
-// Saves the form. Only form fields are written: the list's `id` and the timestamps are never copied into the record
-// (and an `id` saved by older versions is removed). merge keeps createdAt. Resolves the record's id.
+// Saves the form. Only form fields are written: the list's `id` and the timestamps are never copied into the record.
+// merge keeps createdAt. Resolves the record's id.
 export async function saveCandidate(id, form) {
   const { id: _id, createdAt: _c, updatedAt: _u, ...data } = form
   const now = Timestamp.now()
   if (id) {
-    await withTimeout(setDoc(doc(candidates, id), { ...data, id: deleteField(), visitDate: deleteField(), updatedAt: serverTimestamp() }, { merge: true }))
+    await withTimeout(setDoc(doc(candidates, id), { ...data, updatedAt: serverTimestamp() }, { merge: true }))
   } else {
     id = (await withTimeout(addDoc(candidates, { ...data, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }))).id
   }

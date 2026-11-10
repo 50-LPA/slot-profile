@@ -1,20 +1,20 @@
 import { useEffect, useState } from 'react'
 import { ICONS, Icon } from './icons.jsx'
 import { Button, Card, CardHeader, CircleButton, FilterSelect, IconAction, Pill, SearchInput, SearchSelect } from './ui.jsx'
-import { ADVANCE_STATUS, PHASES, PHASE_TONE, TECH, advance, phaseLabel, phaseOf, visitsOf } from './options.js'
+import { ADVANCE_STATUS, PHASES, PHASE_TONE, TECH, advance, phaseLabel, visitsOf } from './options.js'
 import { span } from './career.js'
 import { DEFAULT_FILTERS, EXP_OPTIONS, GAP_OPTIONS, expMonths, filterRows, gapOf, lastVisit, paginate, sortRows } from './list.js'
 import { removeCandidate, setPhase } from './data.js'
 
 // Phase pill as a button: each click moves to the next phase (Inquiry ↔ Confirmed).
 function PhaseButton({ r }) {
-  const i = PHASES.findIndex(([v]) => v === phaseOf(r))
+  const i = PHASES.findIndex(([v]) => v === r.phase)
   const [next, nextLabel] = PHASES[(i + 1) % PHASES.length]
   return (
     <button type="button" onClick={() => setPhase(r.id, next)} title={`Click to change to ${nextLabel}`}
       aria-label={`Phase ${phaseLabel(r)}, change to ${nextLabel}`}
       className="cursor-pointer select-none rounded-full transition hover:ring-2 hover:ring-purple-200 hover:ring-offset-1">
-      <Pill tone={PHASE_TONE[phaseOf(r)]}>{phaseLabel(r)}</Pill>
+      <Pill tone={PHASE_TONE[r.phase]}>{phaseLabel(r)}</Pill>
     </button>
   )
 }

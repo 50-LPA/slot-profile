@@ -1,4 +1,4 @@
-export const PT = 200 // Professional Tax, deducted monthly from in-hand
+const PT = 200 // Professional Tax, deducted monthly from in-hand
 
 // Small numbers are LPA (6.5 → 6,50,000), same rule as the Money input.
 const rupees = (v) => {

@@ -6,8 +6,8 @@ import { DEFAULT_FILTERS, filterRows, gapOf, paginate, lastVisit, sortRows, stat
 const rows = [
   { id: 'a', name: 'Asha', visitDates: ['05-OCT-2026', '12-SEP-2026'], phase: 'confirmed', advanceAmount: '20000', ctc: '900000', tech: ['JAVA'],
     passOut: '2019-06', companies: [{ from: '2019-07', to: '2022-03' }, { from: '2022-06', present: true }], updatedAt: { toDate: () => new Date(2026, 9, 1) } },
-  { id: 'b', name: 'bharat', visitDate: '20-NOV-2026', phase: 'selected', advanceAmount: '5000', tech: ['JAVA', 'PHP'], updatedAt: { toDate: () => new Date(2026, 10, 2) } },
-  { id: 'c', name: 'Chetan', visitDate: '', expYears: '3', advanceAmount: '' }, // old record: no phase, no date
+  { id: 'b', name: 'bharat', visitDates: ['20-NOV-2026'], phase: 'inquiry', advanceAmount: '5000', tech: ['JAVA', 'PHP'], updatedAt: { toDate: () => new Date(2026, 10, 2) } },
+  { id: 'c', name: 'Chetan', visitDates: [''], phase: 'inquiry', expYears: '3', advanceAmount: '' }, // cleared date box
 ]
 const f = (over) => ({ ...DEFAULT_FILTERS, ...over })
 const ids = (rs) => rs.map((r) => r.id).join('')
@@ -17,11 +17,11 @@ test('visit dates read as sortable numbers', () => {
   assert.equal(visitNum('5-oct-2026'), 20261005)
   assert.equal(visitNum(''), null)
   assert.equal(lastVisit(rows[0]), '05-OCT-2026') // latest, not last entered
-  assert.equal(lastVisit(rows[1]), '20-NOV-2026') // old single visitDate
+  assert.equal(lastVisit(rows[1]), '20-NOV-2026')
   assert.equal(lastVisit(rows[2]), '')
 })
 
-test('filters: phase (old records and dropped "selected" = inquiry), gap', () => {
+test('filters: phase, gap', () => {
   assert.equal(ids(filterRows(rows, f({}))), 'a') // default: Confirmed
   assert.equal(ids(filterRows(rows, f({ phase: 'all' }))), 'abc')
   assert.equal(ids(filterRows(rows, f({ phase: 'inquiry' }))), 'bc')

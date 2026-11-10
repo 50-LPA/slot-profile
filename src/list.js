@@ -1,6 +1,6 @@
 // Candidate list maths: filters, sorting, paging and the home-page stats. No React/Firebase, so `node --test` runs it.
 import { totalMonths, gapTotal } from './career.js'
-import { PHASES, TECH, advance, phaseOf, visitsOf } from './options.js'
+import { PHASES, TECH, advance, visitsOf } from './options.js'
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 
@@ -36,7 +36,7 @@ export function filterRows(rows, f) {
       (f.paid === 'all' || advance(r).status === f.paid) &&
       (!f.tech || r.tech?.includes(f.tech)) &&
       (!f.ref || r.reference?.trim() === f.ref) &&
-      (f.phase === 'all' || phaseOf(r) === f.phase) &&
+      (f.phase === 'all' || r.phase === f.phase) &&
       yrs >= lo && yrs < hi &&
       (!f.gap || (f.gap === 'none' ? gap === 0 : f.gap === 'any' ? gap > 0 : gap > Number(f.gap)))
   })
@@ -48,7 +48,7 @@ const SORT_VALUE = {
   visit: (r) => visitNum(lastVisit(r)),
   exp: (r) => expMonths(r) || null,
   ctc: (r) => Number(r.ctc) || null,
-  phase: (r) => PHASES.findIndex(([v]) => v === phaseOf(r)),
+  phase: (r) => PHASES.findIndex(([v]) => v === r.phase),
   advance: (r) => advance(r).paid,
   gap: gapOf,
   updated: updatedMs,
@@ -79,7 +79,7 @@ export function stats(rows, now = new Date()) {
   const tech = Object.fromEntries(TECH.map((t) => [t, 0]))
   let visits = 0
   for (const r of rows) {
-    const phase = phaseOf(r)
+    const phase = r.phase
     byPhase[phase] = (byPhase[phase] ?? 0) + 1
     const a = advance(r)
     adv.collected += a.paid

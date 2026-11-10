@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { applySalary } from './salary.js'
 import { confirmAsk, toast } from './toast.jsx'
-import { ADVANCE_DUE, PHASES, TECH, advance, phaseOf, visitsOf } from './options.js'
+import { ADVANCE_DUE, PHASES, TECH, advance } from './options.js'
 import { ICONS, Icon } from './icons.jsx'
 import { Button, Card, CardHeader, Segmented } from './ui.jsx'
 import { CareerFields, CareerTimeline } from './Career.jsx'
@@ -242,18 +242,10 @@ function withExperience(form) {
   return m === null ? form : { ...form, expYears: String(Math.floor(m / 12)), expMonths: String(m % 12) }
 }
 
-// Saved record → form. Older records had only a "Paid" tick: turn it into the full amount (the tick is then dropped).
-function fromRecord(record) {
-  const { advancePaid, visitDate, ...form } = { ...newForm(), ...record }
-  if (record) form.visitDates = visitsOf(record) // older records: one `visitDate` string
-  form.phase = phaseOf(form) // dropped 'selected' → inquiry
-  if (record && record.advanceAmount == null) form.advanceAmount = advancePaid ? String(ADVANCE_DUE) : ''
-  return form
-}
 
 // `record` is a saved candidate (or undefined for a new one). `onSave(form)` resolves true when saved.
 export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, onDelete }) {
-  const [f, setF] = useState(() => withExperience(fromRecord(record)))
+  const [f, setF] = useState(() => withExperience({ ...newForm(), ...record }))
   const [saved, setSaved] = useState(f)
   const [saving, setSaving] = useState(false)
   const [signing, setSigning] = useState(false)
@@ -470,11 +462,7 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
           <div className="flex items-end gap-[1.5mm] font-bold">
             <span className="whitespace-nowrap">CANDIDATE SIGNATURE :</span>
             <div className={`relative flex h-[16mm] min-w-0 flex-1 items-end border-b border-dashed border-gray-300 ${readOnly ? '' : 'pr-[7mm]'}`}>
-              {f.signature.startsWith('data:image') ? (
-                <img src={f.signature} alt="Candidate signature" className="h-full max-w-full object-contain object-left" />
-              ) : (
-                f.signature && <span className="font-normal">{f.signature}</span> // older records: typed text
-              )}
+              {f.signature && <img src={f.signature} alt="Candidate signature" className="h-full max-w-full object-contain object-left" />}
               {f.signedAt && (
                 <span className="absolute -bottom-[3.6mm] left-0 whitespace-nowrap text-[7pt] font-normal text-gray-500">
                   Signed {new Date(f.signedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}

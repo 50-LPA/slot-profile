@@ -1,7 +1,7 @@
 // Home page: the numbers at a glance. Every tile opens the candidate list already filtered to it.
 import { ICONS, Icon } from './icons.jsx'
 import { Button, CircleButton, Pill } from './ui.jsx'
-import { ADVANCE_DUE, PHASE_TONE, phaseLabel, phaseOf } from './options.js'
+import { ADVANCE_DUE, PHASE_TONE, phaseLabel } from './options.js'
 import { stats } from './list.js'
 
 const rupees = (n) => '₹ ' + n.toLocaleString('en-IN')
@@ -90,7 +90,7 @@ export default function Dashboard({ rows, error, refreshing, refresh }) {
                       <span className="block truncate font-bold text-gray-800">{r.name || '-'}</span>
                       <span className="block text-xs text-gray-400">{r.phone || 'No phone'}</span>
                     </span>
-                    <Pill tone={PHASE_TONE[phaseOf(r)]}>{phaseLabel(r)}</Pill>
+                    <Pill tone={PHASE_TONE[r.phase]}>{phaseLabel(r)}</Pill>
                   </a>
                 </li>
               ))}
