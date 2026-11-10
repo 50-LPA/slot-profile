@@ -27,8 +27,8 @@ export default function Header({ user, onLogout }) {
       <div className="border-b border-indigo-100 bg-indigo-50">
         <div className="flex h-14 items-center px-4 sm:px-6">
           <a href="#/" className="flex items-center gap-2 text-base font-bold tracking-tight text-slate-800">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-600 text-xs text-white">CP</span>
-            Candidate Profile
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-600 text-xs text-white">SP</span>
+            Slot Profile
           </a>
           <div ref={ref} className="relative ml-auto">
             <button onClick={() => setOpen((v) => !v)} aria-haspopup="menu" aria-expanded={open} aria-label="Profile menu" className="flex items-center gap-2.5 text-right">

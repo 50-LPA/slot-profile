@@ -59,7 +59,7 @@ function Login() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-white shadow-lg shadow-indigo-300">
             <Icon d={ICONS.user} className="h-8 w-8" />
           </div>
-          <h1 className="bg-gradient-to-r from-indigo-600 to-fuchsia-600 bg-clip-text text-4xl font-bold text-transparent">Candidate Profile</h1>
+          <h1 className="bg-gradient-to-r from-indigo-600 to-fuchsia-600 bg-clip-text text-4xl font-bold text-transparent">Slot Profile</h1>
           <p className="mt-2 text-gray-500">Welcome back! Please log in to continue.</p>
         </div>
 
