@@ -1,6 +1,6 @@
 // Candidate list maths: filters, sorting, paging and the home-page stats. No React/Firebase, so `node --test` runs it.
 import { totalMonths, gapTotal } from './career.js'
-import { PHASES, TECH, advance, phaseOf } from './options.js'
+import { PHASES, TECH, advance, phaseOf, visitsOf } from './options.js'
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 
@@ -10,6 +10,8 @@ export function visitNum(s) {
   const mi = m ? MONTHS.indexOf(m[2].toUpperCase()) : -1
   return mi < 0 ? null : +m[3] * 10000 + (mi + 1) * 100 + +m[1]
 }
+// Latest readable visit date, or '' when there is none.
+export const lastVisit = (r) => visitsOf(r).reduce((best, d) => ((visitNum(d) ?? -1) > (visitNum(best) ?? -1) ? d : best), '')
 
 // Experience in months: from company dates when present (live for "Present" jobs), else the typed years/months.
 export const expMonths = (r) => totalMonths(r.companies) ?? (Number(r.expYears) || 0) * 12 + (Number(r.expMonths) || 0)
@@ -21,8 +23,8 @@ export const EXP_OPTIONS = [['all', 'All Experience'], ['0-2', '0 – 2 yrs'], [
 const EXP = { all: [0, Infinity], '0-2': [0, 2], '2-5': [2, 5], '5+': [5, Infinity] }
 export const GAP_OPTIONS = [['none', 'No gap'], ['any', 'Any gap'], ['6', 'Gap > 6 mo'], ['12', 'Gap > 1 yr']]
 
-// Every list filter, with its "show all" value. Kept in the URL (#/candidates?phase=selected) so Back keeps them.
-export const DEFAULT_FILTERS = { q: '', paid: 'all', tech: '', exp: 'all', ref: '', phase: '', gap: '', sort: 'updated', dir: 'desc', page: '1', size: '25' }
+// Every list filter, with its "show all" value. Kept in the URL (#/candidates?phase=confirmed) so Back keeps them.
+export const DEFAULT_FILTERS = { q: '', paid: 'all', tech: '', exp: 'all', ref: '', phase: 'confirmed', gap: '', sort: 'updated', dir: 'desc', page: '1', size: '25' }
 
 export function filterRows(rows, f) {
   const q = f.q.trim().toLowerCase()
@@ -34,7 +36,7 @@ export function filterRows(rows, f) {
       (f.paid === 'all' || advance(r).status === f.paid) &&
       (!f.tech || r.tech?.includes(f.tech)) &&
       (!f.ref || r.reference?.trim() === f.ref) &&
-      (!f.phase || phaseOf(r) === f.phase) &&
+      (f.phase === 'all' || phaseOf(r) === f.phase) &&
       yrs >= lo && yrs < hi &&
       (!f.gap || (f.gap === 'none' ? gap === 0 : f.gap === 'any' ? gap > 0 : gap > Number(f.gap)))
   })
@@ -43,7 +45,7 @@ export function filterRows(rows, f) {
 // Sortable columns → the value compared. Blank values always go last.
 const SORT_VALUE = {
   name: (r) => r.name?.trim().toLowerCase() || null,
-  visit: (r) => visitNum(r.visitDate),
+  visit: (r) => visitNum(lastVisit(r)),
   exp: (r) => expMonths(r) || null,
   ctc: (r) => Number(r.ctc) || null,
   phase: (r) => PHASES.findIndex(([v]) => v === phaseOf(r)),
@@ -82,9 +84,9 @@ export function stats(rows, now = new Date()) {
     const a = advance(r)
     adv.collected += a.paid
     adv[a.status]++
-    if (phase !== 'inquiry') adv.pending += a.due // only Selected / Confirmed candidates are expected to pay
+    if (phase !== 'inquiry') adv.pending += a.due // only Confirmed candidates are expected to pay
     r.tech?.forEach((t) => t in tech && tech[t]++)
-    if (Math.floor((visitNum(r.visitDate) ?? 0) / 100) === thisMonth) visits++
+    if (visitsOf(r).some((d) => Math.floor((visitNum(d) ?? 0) / 100) === thisMonth)) visits++
   }
   return {
     total: rows.length, byPhase, advance: adv, visits,

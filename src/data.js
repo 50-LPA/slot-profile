@@ -6,14 +6,14 @@ import {
 import { db, withTimeout } from './firebase.js'
 import { confirmAsk, toast } from './toast.jsx'
 
-export const candidates = collection(db, 'candidates')
+const candidates = collection(db, 'candidates')
 
 // In-memory copy: pages open instantly from it; saves/deletes keep it current; cleared on logout.
 // ponytail: loads every record and filters in the browser; fine for a few thousand, query page by page beyond that.
 let cache = null
 const subscribers = new Set()
 const publish = (rows) => { cache = rows; subscribers.forEach((fn) => fn(rows)) }
-export const clearCache = () => { cache = null } // on logout, and after a bulk upload so pages re-fetch
+export const clearCache = () => { cache = null } // on logout
 export const cached = (id) => cache?.find((r) => r.id === id)
 
 export const loadAll = () =>
@@ -50,7 +50,7 @@ export async function saveCandidate(id, form) {
   const { id: _id, createdAt: _c, updatedAt: _u, ...data } = form
   const now = Timestamp.now()
   if (id) {
-    await withTimeout(setDoc(doc(candidates, id), { ...data, id: deleteField(), updatedAt: serverTimestamp() }, { merge: true }))
+    await withTimeout(setDoc(doc(candidates, id), { ...data, id: deleteField(), visitDate: deleteField(), updatedAt: serverTimestamp() }, { merge: true }))
   } else {
     id = (await withTimeout(addDoc(candidates, { ...data, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }))).id
   }
@@ -92,3 +92,26 @@ export async function removeCandidate(id, name) {
   return true
 }
 const sortByUpdated = (rows) => [...rows].sort((a, b) => (b.updatedAt?.toMillis?.() ?? 0) - (a.updatedAt?.toMillis?.() ?? 0))
+
+// Phase button in the list: the pill changes at once, and the phase is written once clicks stop for a moment, so
+// rapid clicks make one save. The row keeps its place on screen (cache updatedAt untouched); the DB gets the new time.
+const phaseTimers = new Map()
+export function setPhase(id, phase) {
+  const before = cached(id)
+  if (!before) return
+  publish(cache.map((r) => (r.id === id ? { ...r, phase } : r)))
+  clearTimeout(phaseTimers.get(id)?.timer)
+  const was = phaseTimers.get(id)?.was ?? before.phase // phase last saved, for putting back on failure
+  phaseTimers.set(id, {
+    was,
+    timer: setTimeout(async () => {
+      phaseTimers.delete(id)
+      try {
+        await withTimeout(setDoc(doc(candidates, id), { phase, updatedAt: serverTimestamp() }, { merge: true }))
+      } catch (err) {
+        if (cache) publish(cache.map((r) => (r.id === id ? { ...r, phase: was } : r)))
+        toast(`Phase not saved for ${before.name || 'candidate'}: ${err.message}`, { tone: 'error' })
+      }
+    }, 600),
+  })
+}

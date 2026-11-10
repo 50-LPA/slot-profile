@@ -69,7 +69,7 @@ export default function SignaturePad({ onSave, onClose }) {
 
   const btn = 'flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-bold disabled:opacity-40'
   return (
-    <div className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 font-lato" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 font-lato" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div ref={box} role="dialog" aria-modal="true" aria-label="Candidate signature"
         className={`flex flex-col bg-white shadow-2xl ${full ? 'fixed inset-0 p-4 sm:p-6' : 'w-full max-w-3xl rounded-2xl p-5'}`}>
         <div className="flex items-center gap-2">

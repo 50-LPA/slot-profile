@@ -1,10 +1,23 @@
 import { useEffect, useState } from 'react'
 import { ICONS, Icon } from './icons.jsx'
 import { Button, Card, CardHeader, CircleButton, FilterSelect, IconAction, Pill, SearchInput, SearchSelect } from './ui.jsx'
-import { ADVANCE_STATUS, PHASES, PHASE_TONE, TECH, advance, phaseLabel, phaseOf } from './options.js'
+import { ADVANCE_STATUS, PHASES, PHASE_TONE, TECH, advance, phaseLabel, phaseOf, visitsOf } from './options.js'
 import { span } from './career.js'
-import { DEFAULT_FILTERS, EXP_OPTIONS, GAP_OPTIONS, expMonths, filterRows, gapOf, paginate, sortRows } from './list.js'
-import { removeCandidate } from './data.js'
+import { DEFAULT_FILTERS, EXP_OPTIONS, GAP_OPTIONS, expMonths, filterRows, gapOf, lastVisit, paginate, sortRows } from './list.js'
+import { removeCandidate, setPhase } from './data.js'
+
+// Phase pill as a button: each click moves to the next phase (Inquiry ↔ Confirmed).
+function PhaseButton({ r }) {
+  const i = PHASES.findIndex(([v]) => v === phaseOf(r))
+  const [next, nextLabel] = PHASES[(i + 1) % PHASES.length]
+  return (
+    <button type="button" onClick={() => setPhase(r.id, next)} title={`Click to change to ${nextLabel}`}
+      aria-label={`Phase ${phaseLabel(r)}, change to ${nextLabel}`}
+      className="cursor-pointer select-none rounded-full transition hover:ring-2 hover:ring-purple-200 hover:ring-offset-1">
+      <Pill tone={PHASE_TONE[phaseOf(r)]}>{phaseLabel(r)}</Pill>
+    </button>
+  )
+}
 
 const go = (hash) => (window.location.hash = hash)
 const th = 'border border-gray-200 px-3 py-2 font-bold text-gray-700'
@@ -33,7 +46,13 @@ function AdvanceText({ r }) {
   return <span className={`inline-flex items-center gap-1 font-bold ${color}`}><Icon d={icon} className="h-4 w-4" /> {label}</span>
 }
 
-// Filters live in the URL (#/candidates?phase=selected&page=2): links from the home page set them, Back keeps them.
+// Last visit, plus how many visits in all when more than one ("05-NOV-2026 ×3"); every date on hover.
+function VisitDate({ r }) {
+  const all = visitsOf(r)
+  return <span title={all.join(', ')}>{lastVisit(r) || '-'}{all.length > 1 && <span className="ml-1 text-xs font-bold text-purple-600">×{all.length}</span>}</span>
+}
+
+// Filters live in the URL (#/candidates?phase=confirmed&page=2): links from the home page set them, Back keeps them.
 const readFilters = () => ({ ...DEFAULT_FILTERS, ...Object.fromEntries(new URLSearchParams(window.location.hash.split('?')[1])) })
 function writeFilters(f) {
   const qs = new URLSearchParams(Object.entries(f).filter(([k, v]) => v !== DEFAULT_FILTERS[k])).toString()
@@ -95,7 +114,7 @@ export default function CandidateList({ rows, error, refreshing, refresh }) {
         </Button>
         <div className={`${open ? 'grid' : 'hidden'} order-last w-full grid-cols-2 gap-2 md:contents`}>
           <FilterSelect label="Advance payment" value={f.paid} onChange={set('paid')} options={[['all', 'All Payments'], ...ADVANCE_STATUS]} className="md:w-32" />
-          <FilterSelect label="Phase" value={f.phase} onChange={set('phase')} placeholder="All Phases" options={PHASES} className="md:w-28" />
+          <FilterSelect label="Phase" value={f.phase} onChange={set('phase')} options={[['all', 'All Phases'], ...PHASES]} className="md:w-28" />
           <FilterSelect label="Career technology" value={f.tech} onChange={set('tech')} placeholder="All Technologies" options={TECH} className="md:w-36" />
           <FilterSelect label="Experience" value={f.exp} onChange={set('exp')} options={EXP_OPTIONS} className="md:w-32" />
           <FilterSelect label="Career gap" value={f.gap} onChange={set('gap')} placeholder="All Gaps" options={GAP_OPTIONS} className="md:w-28" />
@@ -139,13 +158,13 @@ export default function CandidateList({ rows, error, refreshing, refresh }) {
                   <tr key={r.id} className="hover:bg-purple-50/30">
                     <td className={td}>{pg.first + i}</td>
                     <td className={`${td} text-left`}>{r.name || '-'}</td>
-                    <td className={td}>{r.visitDate || '-'}</td>
+                    <td className={td}><VisitDate r={r} /></td>
                     <td className={td}>{r.reference || '-'}</td>
                     <td className={td}>{r.tech?.length ? r.tech.join(', ') : '-'}</td>
                     <td className={td}>{expLabel(r)}</td>
                     <td className={td}><GapText r={r} /></td>
                     <td className={td}>{lpa(r.ctc)}</td>
-                    <td className={td}><Pill tone={PHASE_TONE[phaseOf(r)]}>{phaseLabel(r)}</Pill></td>
+                    <td className={td}><PhaseButton r={r} /></td>
                     <td className={td}><AdvanceText r={r} /></td>
                     <td className={td}>{actions(r)}</td>
                   </tr>
@@ -167,10 +186,10 @@ export default function CandidateList({ rows, error, refreshing, refresh }) {
               <li key={r.id} className="rounded-xl border border-gray-200 p-3 text-[13px] text-gray-700">
                 <div className="flex items-start justify-between gap-2">
                   <button type="button" onClick={() => go(`#/c/${r.id}/view`)} className="text-left text-sm font-bold text-gray-900">{r.name || '-'}</button>
-                  <Pill tone={PHASE_TONE[phaseOf(r)]}>{phaseLabel(r)}</Pill>
+                  <PhaseButton r={r} />
                 </div>
                 <p className="mt-0.5 text-xs text-gray-500">
-                  {r.phone ? <a href={`tel:${r.phone}`} className="text-purple-600">{r.phone}</a> : 'No phone'} · {r.visitDate || 'No visit date'}{r.reference ? ` · ${r.reference}` : ''}
+                  {r.phone ? <a href={`tel:${r.phone}`} className="text-purple-600">{r.phone}</a> : 'No phone'} · {lastVisit(r) ? <VisitDate r={r} /> : 'No visit date'}{r.reference ? ` · ${r.reference}` : ''}
                 </p>
                 {r.tech?.length > 0 && <p className="mt-1.5">{r.tech.join(', ')}</p>}
                 <dl className="mt-2 grid grid-cols-3 gap-1 text-xs">

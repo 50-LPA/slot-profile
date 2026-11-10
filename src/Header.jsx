@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ICONS, Icon } from './icons.jsx'
 
 // Subheader tabs: add an entry here to add a tab everywhere.
-const TABS = [['Home', '#/', ICONS.home], ['Candidates', '#/candidates', ICONS.users], ['Bulk Upload', '#/bulk', ICONS.upload]]
+const TABS = [['Home', '#/', ICONS.home], ['Candidates', '#/candidates', ICONS.users]]
 
 // Soft indigo title bar with the profile menu on the far right, then the white subheader (underlined tabs). Shown on every page after login.
 export default function Header({ user, onLogout }) {
@@ -12,7 +12,7 @@ export default function Header({ user, onLogout }) {
   const [open, setOpen] = useState(false)
   // App re-renders on hash change. Candidate pages (#/c/…, #/new) belong to the Candidates tab.
   const hash = window.location.hash || '#/'
-  const active = hash === '#/' ? '#/' : hash.startsWith('#/bulk') ? '#/bulk' : '#/candidates'
+  const active = hash === '#/' ? '#/' : '#/candidates'
   const ref = useRef(null)
   useEffect(() => {
     if (!open) return
@@ -23,7 +23,7 @@ export default function Header({ user, onLogout }) {
   }, [open])
 
   return (
-    <header className="no-print font-lato">
+    <header className="font-lato">
       <div className="border-b border-indigo-100 bg-indigo-50">
         <div className="flex h-14 items-center px-4 sm:px-6">
           <a href="#/" className="flex items-center gap-2 text-base font-bold tracking-tight text-slate-800">

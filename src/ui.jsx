@@ -5,7 +5,7 @@ import { ICONS, Icon } from './icons.jsx'
 // Page body under the header: padding + breadcrumbs. crumbs: [label, href?][]; the last one is the current page.
 export function Page({ crumbs, children }) {
   return (
-    <main className="px-4 py-4 font-lato sm:px-6 sm:py-5 print:p-0">
+    <main className="px-4 py-4 font-lato sm:px-6 sm:py-5">
       <Breadcrumbs items={crumbs} />
       {children}
     </main>
@@ -14,7 +14,7 @@ export function Page({ crumbs, children }) {
 
 export function Breadcrumbs({ items }) {
   return (
-    <nav aria-label="Breadcrumb" className="no-print mb-3 flex flex-wrap items-center gap-1 text-xs text-gray-500">
+    <nav aria-label="Breadcrumb" className="mb-3 flex flex-wrap items-center gap-1 text-xs text-gray-500">
       <a href="#/" className="flex items-center gap-1 hover:text-purple-600"><Icon d={ICONS.home} className="h-3.5 w-3.5" /> Home</a>
       {items.map(([label, href], i) => (
         <span key={i} className="flex items-center gap-1">
@@ -26,10 +26,10 @@ export function Breadcrumbs({ items }) {
   )
 }
 
-// The main white card (disappears when printing).
+// The main white card.
 export function Card({ children }) {
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 print:rounded-none print:border-0 print:p-0 print:shadow-none">
+    <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
       {children}
     </section>
   )
@@ -38,7 +38,7 @@ export function Card({ children }) {
 // Card title row: back button left · title centred (+ extra, e.g. refresh) · actions right. Wraps on small screens.
 export function CardHeader({ onBack, backLabel = 'Go back', title, extra, actions }) {
   return (
-    <div className="no-print grid grid-cols-[auto_1fr] items-center gap-2 lg:grid-cols-[1fr_auto_1fr]">
+    <div className="grid grid-cols-[auto_1fr] items-center gap-2 lg:grid-cols-[1fr_auto_1fr]">
       <div><CircleButton icon={ICONS.back} label={backLabel} onClick={onBack} /></div>
       <div className="flex items-center justify-center gap-2">
         <h1 className="text-center text-base font-bold text-purple-600">{title}</h1>

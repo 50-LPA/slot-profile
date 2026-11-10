@@ -19,7 +19,7 @@ export function CareerTimeline({ passOut, companies }) {
   const t = layout(passOut, companies)
   const gapTotal = t?.gaps.reduce((sum, g) => sum + g.months, 0)
   return (
-    <div className="relative h-[40mm] shrink-0 [print-color-adjust:exact]">
+    <div className="relative h-[40mm] shrink-0">
       {t ? (
         <>
           {gapTotal > 0 && (
@@ -92,7 +92,7 @@ export function CareerTimeline({ passOut, companies }) {
           </div>
         </>
       ) : (
-        <p className="no-print flex h-full items-center justify-center text-[9pt] text-gray-300">
+        <p className="flex h-full items-center justify-center text-[9pt] text-gray-300">
           Add pass-out and company details on the right to draw the career timeline here.
         </p>
       )}
@@ -105,7 +105,7 @@ const input = 'h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text
 const row = 'grid grid-cols-[20px_minmax(0,1fr)_minmax(0,1fr)_24px] items-center gap-1.5 @xl:grid-cols-[20px_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_44px_24px]'
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-export const FIRST_YEAR = 2005
+const FIRST_YEAR = 2005
 const YEARS = Array.from({ length: new Date().getFullYear() - FIRST_YEAR + 1 }, (_, i) => String(FIRST_YEAR + i)) // 2005 → this year
 
 // Month dropdown then year dropdown, stored as "YYYY-MM" (half-filled stays "YYYY-" / "-MM" and is ignored by the timeline).

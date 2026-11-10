@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { applySalary } from './salary.js'
 import { confirmAsk, toast } from './toast.jsx'
-import { ADVANCE_DUE, PHASES, TECH, advance } from './options.js'
+import { ADVANCE_DUE, PHASES, TECH, advance, phaseOf, visitsOf } from './options.js'
 import { ICONS, Icon } from './icons.jsx'
 import { Button, Card, CardHeader, Segmented } from './ui.jsx'
 import { CareerFields, CareerTimeline } from './Career.jsx'
@@ -41,12 +41,12 @@ const fmtDate = (d) => `${String(d.getDate()).padStart(2, '0')}-${MONTHS[d.getMo
 
 // One object holds the whole form; this is exactly what gets saved as a record.
 const newForm = (today = fmtDate(new Date())) => ({
-  name: '', phone: '', visitDate: today, reference: '',
+  name: '', phone: '', visitDates: [today], reference: '',
   parentsNo: '', parentsRel: '', spouseNo: '', spouseRel: '',
   tech: [], expYears: '', expMonths: '',
   ctc: '', varPay: '', fixPay: '', inHand: '',
   advanceAmount: '', // rupees paid towards the advance (digits); status is worked out from it
-  phase: 'inquiry', // 'inquiry' | 'selected' | 'confirmed'
+  phase: 'inquiry', // 'inquiry' | 'confirmed'
   passOut: '', // 'YYYY-MM'
   companies: [], // { name, from: 'YYYY-MM', to: 'YYYY-MM', present: bool }
   signature: '', // PNG data URL drawn on the signature pad
@@ -65,8 +65,8 @@ function Field({ label, children }) {
   )
 }
 
-function Text({ value, onChange, ...rest }) {
-  return <input className="field" value={value} onChange={(e) => onChange(e.target.value)} {...rest} />
+function Text({ value, onChange, className = '', ...rest }) {
+  return <input className={`field ${className}`} value={value} onChange={(e) => onChange(e.target.value)} {...rest} />
 }
 
 // "03-NOV-2026" <-> "2026-11-03" for the native date picker.
@@ -76,13 +76,13 @@ const toIso = (v) => {
   return mi < 0 ? '' : `${m[3]}-${String(mi + 1).padStart(2, '0')}-${m[1].padStart(2, '0')}`
 }
 
-// Text date (still typeable) plus a calendar button that opens the browser's date picker; the button doesn't print.
-function DateText({ value, onChange }) {
+// Text date (still typeable) plus a calendar button that opens the browser's date picker.
+function DateText({ value, onChange, className }) {
   const picker = useRef(null)
   return (
     <>
-      <Text value={value} onChange={onChange} />
-      <span className="no-print relative flex-none self-center">
+      <Text value={value} onChange={onChange} className={className} />
+      <span className="relative flex-none self-center">
         <button type="button" tabIndex={-1} aria-label="Pick a date" title="Pick a date"
           onClick={() => (picker.current.showPicker ? picker.current.showPicker() : picker.current.click())}
           className="flex h-[6mm] w-[6mm] items-center justify-center rounded text-gray-400 hover:bg-purple-50 hover:text-purple-600">
@@ -93,6 +93,29 @@ function DateText({ value, onChange }) {
           className="pointer-events-none absolute inset-0 opacity-0" />
       </span>
     </>
+  )
+}
+
+// Every visit date, one small date box each; + adds today's date (a repeat visit is usually logged the day it happens).
+function VisitDates({ value, onChange }) {
+  const today = fmtDate(new Date())
+  const put = (i, v) => onChange(value.map((d, j) => (j === i ? v : d)))
+  return (
+    <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-[2mm] gap-y-[1mm]">
+      {value.map((d, i) => (
+        <span key={i} className="flex items-baseline">
+          <DateText value={d} onChange={(v) => put(i, v)} className="w-[24mm] flex-none" />
+          {value.length > 1 && (
+            <button type="button" tabIndex={-1} aria-label={`Remove visit ${d}`} title="Remove this visit" onClick={() => onChange(value.filter((_, j) => j !== i))}
+              className="self-center rounded text-gray-400 hover:bg-red-50 hover:text-red-600">
+              <Icon d={ICONS.close} className="h-[3.5mm] w-[3.5mm]" />
+            </button>
+          )}
+        </span>
+      ))}
+      <button type="button" tabIndex={-1} aria-label="Add a visit" title="Add a visit (today)" onClick={() => onChange([...value, today])}
+        className="self-center rounded-full border border-purple-300 px-[1.5mm] text-[8pt] font-normal text-purple-600 hover:bg-purple-50">+ Visit</button>
+    </span>
   )
 }
 
@@ -109,9 +132,9 @@ function Phone({ value, onChange }) {
           const d = digits(e.target.value)
           onChange((d.length > 10 ? d.replace(/^(91|0)/, '') : d).slice(0, 10))
         }}
-        className={`field ${short ? 'border-solid! border-red-500! print:border-transparent!' : ''}`}
+        className={`field ${short ? 'border-solid! border-red-500!' : ''}`}
       />
-      {short && <span className="no-print text-[8pt] font-normal text-red-500">{value.length}/10</span>}
+      {short && <span className="text-[8pt] font-normal text-red-500">{value.length}/10</span>}
     </>
   )
 }
@@ -119,7 +142,7 @@ function Phone({ value, onChange }) {
 // Small "Relation" line under a family number; hidden on paper if left empty.
 function Relation({ value, onChange, options }) {
   return (
-    <label className={`mt-[1mm] flex gap-[1.5mm] text-[9.5pt] ${value ? '' : 'print:hidden'}`}>
+    <label className="mt-[1mm] flex gap-[1.5mm] text-[9.5pt]">
       <span className="text-gray-500">Relation :</span>
       <select
         value={value}
@@ -194,8 +217,8 @@ function AdvancePaid({ value, onChange }) {
         / {ADVANCE_DUE.toLocaleString('en-IN')}
       </label>
       <button type="button" onClick={() => onChange(String(ADVANCE_DUE))}
-        className="no-print ml-[2mm] rounded-full border border-gray-300 px-2 text-[8pt] text-gray-600 hover:bg-gray-50">Full</button>
-      <p className={`mt-[1mm] text-[9.5pt] font-bold [print-color-adjust:exact] ${tone}`}>
+        className="ml-[2mm] rounded-full border border-gray-300 px-2 text-[8pt] text-gray-600 hover:bg-gray-50">Full</button>
+      <p className={`mt-[1mm] text-[9.5pt] font-bold ${tone}`}>
         {a.status === 'paid' ? '✓ Fully paid' : a.status === 'partial' ? `Partially paid · ₹ ${a.due.toLocaleString('en-IN')} due` : 'Unpaid'}
       </p>
     </div>
@@ -221,7 +244,9 @@ function withExperience(form) {
 
 // Saved record → form. Older records had only a "Paid" tick: turn it into the full amount (the tick is then dropped).
 function fromRecord(record) {
-  const { advancePaid, ...form } = { ...newForm(), ...record }
+  const { advancePaid, visitDate, ...form } = { ...newForm(), ...record }
+  if (record) form.visitDates = visitsOf(record) // older records: one `visitDate` string
+  form.phase = phaseOf(form) // dropped 'selected' → inquiry
   if (record && record.advanceAmount == null) form.advanceAmount = advancePaid ? String(ADVANCE_DUE) : ''
   return form
 }
@@ -267,35 +292,34 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
         actions={<>
           <Segmented label="Profile phase" options={PHASES} value={f.phase} onChange={set('phase')} disabled={readOnly}
             border="border-gray-300" idle="text-gray-500 enabled:hover:bg-gray-50"
-            activeClass={(v) => ({ confirmed: 'bg-emerald-500', selected: 'bg-sky-500' }[v] ?? 'bg-gray-500') + ' text-white'} />
+            activeClass={(v) => (v === 'confirmed' ? 'bg-emerald-500' : 'bg-gray-500') + ' text-white'} />
           <span className="px-1 text-xs text-gray-500">{readOnly ? 'View only' : dirty ? '● Unsaved changes' : record ? '✓ Saved' : ''}</span>
           {onDelete && <Button variant="danger" icon={ICONS.trash} onClick={onDelete}>Delete</Button>}
           {readOnly
             ? <Button variant="warning" icon={ICONS.pencil} onClick={onEdit}>Update</Button>
             : <Button icon={ICONS.check} onClick={save} disabled={saving || !dirty}>{saving ? 'Saving…' : 'Save'}</Button>}
-          <Button variant="dark" icon={ICONS.print} onClick={() => window.print()}>Print / PDF</Button>
         </>}
       />
 
       {/* Inner card, split: A4 sheet left | career fields right (stacked on smaller screens). Only two cards in total. */}
-      <div className="mt-4 flex flex-col overflow-hidden rounded-xl border border-gray-200 xl:flex-row print:m-0 print:block print:overflow-visible print:rounded-none print:border-0">
-      <div className="overflow-x-auto xl:shrink-0 print:overflow-visible">
+      <div className="mt-4 flex flex-col overflow-hidden rounded-xl border border-gray-200 xl:flex-row">
+      <div className="overflow-x-auto xl:shrink-0">
       <form
         onKeyDown={nextOnEnter}
         onSubmit={(e) => e.preventDefault()}
         inert={readOnly}
-        className="sheet mx-auto xl:mx-0 flex h-[297mm] w-[210mm] flex-col justify-between overflow-hidden bg-white p-[6mm] font-lato text-[11.5pt] leading-tight text-black mobile:h-auto mobile:w-full mobile:gap-7 mobile:p-4"
+        className="mx-auto xl:mx-0 flex h-[297mm] w-[210mm] flex-col justify-between overflow-hidden bg-white p-[6mm] font-lato text-[11.5pt] leading-tight text-black mobile:h-auto mobile:w-full mobile:gap-7 mobile:p-4"
       >
         {/* Candidate details */}
         <section className="grid grid-cols-[102mm_minmax(0,1fr)] gap-y-[4.5mm] text-[11.5pt] mobile:grid-cols-1 mobile:gap-y-5">
           <Field label="CANDIDATE NAME">
             <Text value={f.name} onChange={set('name')} autoFocus />
           </Field>
-          <Field label="PHONE / CONTACT">
+          <Field label="CANDIDATE MOBILE">
             <Phone value={f.phone} onChange={set('phone')} />
           </Field>
-          <Field label="LAST VISIT DATE">
-            <DateText value={f.visitDate} onChange={set('visitDate')} />
+          <Field label="VISIT DATES">
+            <VisitDates value={f.visitDates} onChange={set('visitDates')} />
           </Field>
           <Field label="REFERENCE NAME">
             <Text value={f.reference} onChange={set('reference')} />
@@ -324,8 +348,8 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
         <section className="flex mobile:flex-col mobile:gap-7">
           <div className="w-[78mm] mobile:w-full">
             <h2 className="mb-[2.6mm] font-bold underline underline-offset-2">CAREER TECHNOLOGY</h2>
-            {/* 6 rows × 2 columns, filled top-to-bottom then left-to-right */}
-            <ul className="grid grid-flow-col grid-cols-[auto_auto] grid-rows-6 justify-start gap-x-[6mm] gap-y-[5mm]">
+            {/* 7 rows × 2 columns, filled top-to-bottom then left-to-right */}
+            <ul className="grid grid-flow-col grid-cols-[auto_auto] grid-rows-7 justify-start gap-x-[6mm] gap-y-[3.5mm]">
               {TECH.map((t) => (
                 <li key={t}>
                   <label className="flex items-center gap-[2mm] whitespace-nowrap">
@@ -445,7 +469,7 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
         <section className="grid grid-cols-[102mm_minmax(0,1fr)] items-end pb-[4mm] text-[11.5pt] mobile:grid-cols-1 mobile:gap-y-6">
           <div className="flex items-end gap-[1.5mm] font-bold">
             <span className="whitespace-nowrap">CANDIDATE SIGNATURE :</span>
-            <div className={`relative flex h-[16mm] min-w-0 flex-1 items-end border-b border-dashed border-gray-300 print:border-transparent print:pr-0 ${readOnly ? '' : 'pr-[7mm]'}`}>
+            <div className={`relative flex h-[16mm] min-w-0 flex-1 items-end border-b border-dashed border-gray-300 ${readOnly ? '' : 'pr-[7mm]'}`}>
               {f.signature.startsWith('data:image') ? (
                 <img src={f.signature} alt="Candidate signature" className="h-full max-w-full object-contain object-left" />
               ) : (
@@ -459,7 +483,7 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
               {!readOnly && (
                 <button type="button" onClick={() => setSigning(true)}
                   aria-label={f.signature ? 'Re-sign' : 'Sign here'} title={f.signature ? 'Re-sign' : 'Sign here'}
-                  className="no-print absolute right-0 bottom-[1mm] flex h-[6mm] w-[6mm] items-center justify-center rounded-full border border-purple-300 bg-white text-purple-600 shadow-sm hover:bg-purple-50">
+                  className="absolute right-0 bottom-[1mm] flex h-[6mm] w-[6mm] items-center justify-center rounded-full border border-purple-300 bg-white text-purple-600 shadow-sm hover:bg-purple-50">
                   <Icon d={ICONS.signature} className="h-[3.5mm] w-[3.5mm]" />
                 </button>
               )}
@@ -475,8 +499,8 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
         </p>
       </form>
       </div>
-      <div className="no-print hidden w-px bg-gray-200 xl:block" />
-      <aside inert={readOnly} className="no-print min-w-0 flex-1 border-t border-gray-200 p-4 xl:border-t-0">
+      <div className="hidden w-px bg-gray-200 xl:block" />
+      <aside inert={readOnly} className="min-w-0 flex-1 border-t border-gray-200 p-4 xl:border-t-0">
         <div className="xl:sticky xl:top-4">
           <CareerFields passOut={f.passOut} companies={f.companies} onPassOut={set('passOut')} onCompanies={setCompanies} />
         </div>

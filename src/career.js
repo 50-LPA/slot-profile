@@ -2,7 +2,7 @@
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export const toIdx = (ym) => (/^\d{4}-\d{2}$/.test(ym ?? '') ? Number(ym.slice(0, 4)) * 12 + Number(ym.slice(5)) - 1 : null)
-export const nowIdx = (d = new Date()) => d.getFullYear() * 12 + d.getMonth()
+const nowIdx = (d = new Date()) => d.getFullYear() * 12 + d.getMonth()
 export const monthLabel = (i) => `${MON[i % 12]} ${Math.floor(i / 12)}`
 export const span = (months) =>
   [Math.floor(months / 12) && `${Math.floor(months / 12)}y`, months % 12 && `${months % 12}mo`].filter(Boolean).join(' ') || '0mo'

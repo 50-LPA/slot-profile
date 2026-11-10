@@ -4,16 +4,15 @@ import { auth, loginEmail } from './firebase.js'
 // Profile page (form, timeline, signature pad) loads in its own file; fetched in the background right after login.
 const loadForm = () => import('./ProfileForm.jsx')
 const ProfileForm = lazy(loadForm)
-const BulkUpload = lazy(() => import('./BulkUpload.jsx'))
 import { ICONS, Icon } from './icons.jsx'
 import Header from './Header.jsx'
 import CandidateList from './CandidateList.jsx'
 import Dashboard from './Dashboard.jsx'
 import { Loading, Page } from './ui.jsx'
 import { Toaster, ask, toast } from './toast.jsx'
-import { cached, candidates, clearCache, findByPhone, getCandidate, removeCandidate, saveCandidate, useCandidates } from './data.js'
+import { cached, clearCache, findByPhone, getCandidate, removeCandidate, saveCandidate, useCandidates } from './data.js'
 
-// Pages live in the URL hash: #/ (home), #/candidates[?filters], #/new, #/c/<id> (edit), #/c/<id>/view, #/bulk
+// Pages live in the URL hash: #/ (home), #/candidates[?filters], #/new, #/c/<id> (edit), #/c/<id>/view
 const go = (hash) => (window.location.hash = hash)
 function useHash() {
   const [hash, setHash] = useState(window.location.hash || '#/')
@@ -161,11 +160,6 @@ export default function App() {
   if (!user) return <Login />
   const [, id, view] = hash.match(/^#\/c\/([^/]+)(\/view)?/) ?? []
   const page = id || hash === '#/new' ? <CandidatePage key={hash} id={id} view={!!view} />
-    : hash.startsWith('#/bulk') ? (
-      <Page crumbs={[['Bulk Upload']]}>
-        <Suspense fallback={<Loading />}><BulkUpload candidates={candidates} onImported={clearCache} /></Suspense>
-      </Page>
-    )
     : <ListPages home={!hash.startsWith('#/candidates')} />
   return (
     <div className="min-h-screen">

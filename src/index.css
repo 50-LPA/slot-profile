@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
-/* mobile: = phone screens only (never print, never desktop), so the A4 layout and the printout stay exactly as they are. */
-@custom-variant mobile (@media screen and (width < 48rem));
+/* mobile: = phone screens only (never desktop), so the A4-sized layout stays exactly as it is on bigger screens. */
+@custom-variant mobile (@media (width < 48rem));
 
 @theme {
   --font-lato: "Lato", sans-serif;
@@ -13,19 +13,10 @@ body { @apply bg-gray-50; }
 /* No transitions or animations anywhere: every change shows instantly. */
 *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 
-@page { size: A4; margin: 0; }
-@media print {
-  /* Strictly one A4 page: the printout is capped at a single sheet, so nothing can spill onto page 2. */
-  html, body { width: 210mm; height: 297mm; margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: white !important; }
-  .no-print { display: none !important; }
-  .sheet { box-shadow: none !important; margin: 0 !important; height: 296.8mm !important; break-inside: avoid; break-after: avoid; page-break-after: avoid; }
-}
-
-/* Fill-in fields look like plain text on paper */
+/* Fill-in fields: dashed underline */
 @layer components {
-  .field { @apply min-w-0 flex-1 bg-transparent outline-none border-b border-dashed border-gray-300 font-normal print:border-transparent; }
+  .field { @apply min-w-0 flex-1 bg-transparent outline-none border-b border-dashed border-gray-300 font-normal; }
 }
-@media print { ::placeholder { color: transparent !important; } }
 
 /* Compact dropdown: native arrow replaced by a small one so short values (JAN, 2017) fit in narrow columns. */
 .select-sm {

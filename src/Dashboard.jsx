@@ -40,15 +40,13 @@ export default function Dashboard({ rows, error, refreshing, refresh }) {
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="mr-auto text-lg font-bold text-gray-900">Overview</h1>
         <CircleButton icon={ICONS.refresh} label="Refresh numbers" onClick={refresh} disabled={refreshing} dim={refreshing} />
-        <Button variant="dark" icon={ICONS.upload} onClick={() => (window.location.hash = '#/bulk')}><span className="hidden sm:inline">Bulk Upload</span></Button>
         <Button icon={ICONS.plus} onClick={() => (window.location.hash = '#/new')}><span className="hidden sm:inline">Add Candidate</span></Button>
       </div>
 
       <Section title="Candidates">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Tile label="Total" value={s.total} note={`${s.visits} visited this month`} href={L} />
+        <div className="grid grid-cols-3 gap-3">
+          <Tile label="Total" value={s.total} note={`${s.visits} visited this month`} href={`${L}?phase=all`} />
           <Tile label="Inquiry" value={s.byPhase.inquiry} note={pct(s.byPhase.inquiry)} tone="gray" href={`${L}?phase=inquiry`} />
-          <Tile label="Selected" value={s.byPhase.selected} note={pct(s.byPhase.selected)} tone="sky" href={`${L}?phase=selected`} />
           <Tile label="Confirmed" value={s.byPhase.confirmed} note={pct(s.byPhase.confirmed)} tone="green" href={`${L}?phase=confirmed`} />
         </div>
       </Section>
@@ -56,7 +54,7 @@ export default function Dashboard({ rows, error, refreshing, refresh }) {
       <Section title={`Advance (${rupees(ADVANCE_DUE)} each)`}>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Tile label="Collected" value={rupees(s.advance.collected)} note={`${s.advance.paid} fully paid`} tone="green" href={`${L}?paid=paid`} />
-          <Tile label="Pending" value={rupees(s.advance.pending)} note="from Selected & Confirmed" tone="amber" href={`${L}?sort=advance&dir=asc`} />
+          <Tile label="Pending" value={rupees(s.advance.pending)} note="from Confirmed" tone="amber" href={`${L}?sort=advance&dir=asc`} />
           <Tile label="Partially paid" value={s.advance.partial} note="candidates" tone="amber" href={`${L}?paid=partial`} />
           <Tile label="Unpaid" value={s.advance.unpaid} note="candidates" tone="red" href={`${L}?paid=unpaid`} />
         </div>
@@ -97,7 +95,7 @@ export default function Dashboard({ rows, error, refreshing, refresh }) {
                 </li>
               ))}
             </ul>
-            <a href={L} className="block border-t border-gray-100 px-4 py-2 text-center text-xs font-bold text-purple-600 hover:bg-purple-50/40">All candidates →</a>
+            <a href={`${L}?phase=all`} className="block border-t border-gray-100 px-4 py-2 text-center text-xs font-bold text-purple-600 hover:bg-purple-50/40">All candidates →</a>
           </div>
         </Section>
       </div>
