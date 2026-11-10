@@ -1,44 +1,105 @@
-// Candidate records in Firestore, plus one in-memory copy shared by the home page and the list.
+// Candidate records in Firestore, plus one local copy shared by every page.
+//
+// Fewer reads: the copy is kept in localStorage, so a reload or a new session doesn't re-read every record.
+// A sync (once per session after login, and on Refresh) fetches only records changed since the last sync,
+// plus a count of all records (1 read). Deletes made on another device don't show up as changes, so a count
+// that doesn't match the copy triggers one full reload; a full reload also runs once a day as a safety net.
+// Cost per sync: 2 reads + 1 per changed record (was: 1 per record, on every page load and every Refresh).
 import { useEffect, useState } from 'react'
 import {
-  Timestamp, addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, where,
+  Timestamp, addDoc, collection, deleteDoc, doc, getCount, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, where,
 } from 'firebase/firestore/lite'
 import { db, withTimeout } from './firebase.js'
 import { confirmAsk, toast } from './toast.jsx'
+import { mergeRows } from './list.js'
 
 const candidates = collection(db, 'candidates')
+const KEY = 'slot-profile:candidates'
+const FULL_EVERY = 24 * 60 * 60 * 1000 // full reload at least this often (ms)
 
-// In-memory copy: pages open instantly from it; saves/deletes keep it current; cleared on logout.
-// ponytail: loads every record and filters in the browser; fine for a few thousand, query page by page beyond that.
-let cache = null
+// lastSync = newest updatedAt the server has sent us (server time, so device clocks don't matter).
+// Local saves are stamped with the device time and don't move it, so the next sync re-reads them from the server.
+let { rows: cache = null, lastSync = null, lastFull = 0 } = restore()
+let state = { rows: cache, refreshing: false, error: '' }
 const subscribers = new Set()
-const publish = (rows) => { cache = rows; subscribers.forEach((fn) => fn(rows)) }
-export const clearCache = () => { cache = null } // on logout
+const emit = (patch) => { state = { ...state, ...patch }; subscribers.forEach((fn) => fn(state)) }
+const publish = (rows) => { cache = rows; persist(); emit({ rows }) }
 export const cached = (id) => cache?.find((r) => r.id === id)
 
-const loadAll = () =>
-  withTimeout(getDocs(query(candidates, orderBy('updatedAt', 'desc'))))
-    .then((snap) => publish(snap.docs.map((d) => ({ id: d.id, ...d.data() }))))
+// Timestamps are stored as { seconds, nanoseconds } and turned back into Timestamps on load.
+function restore() {
+  try {
+    return JSON.parse(localStorage.getItem(KEY), (_k, v) => (v?.seconds != null && v?.nanoseconds != null ? new Timestamp(v.seconds, v.nanoseconds) : v)) ?? {}
+  } catch { return {} }
+}
+// ponytail: localStorage (~5 MB) holds a few hundred signed records; move to IndexedDB if it ever fills.
+// When it's full or blocked, saving the copy is skipped and the app reloads everything per session, as before.
+function persist() {
+  try { localStorage.setItem(KEY, JSON.stringify({ rows: cache, lastSync, lastFull })) } catch { /* see above */ }
+}
+export function clearCache() { // on logout: the copy holds candidate details, so it doesn't stay on the device
+  cache = lastSync = null; lastFull = 0; firstSync = null; firstDone = false
+  state = { rows: null, refreshing: false, error: '' }
+  try { localStorage.removeItem(KEY) } catch { /* nothing stored */ }
+}
 
-// { rows, error, refreshing, refresh } — rows stay null until the first load; every page sees the same copy.
+const toRow = (d) => ({ id: d.id, ...d.data() })
+const newest = (rows, since) => rows.reduce((m, r) => (r.updatedAt && (!m || r.updatedAt.valueOf() > m.valueOf()) ? r.updatedAt : m), since)
+
+async function full() {
+  const rows = (await withTimeout(getDocs(query(candidates, orderBy('updatedAt', 'desc'))))).docs.map(toRow)
+  lastSync = newest(rows, null); lastFull = Date.now()
+  publish(rows)
+}
+async function delta() {
+  const [snap, count] = await withTimeout(Promise.all([getDocs(query(candidates, where('updatedAt', '>', lastSync))), getCount(candidates)]))
+  const changed = snap.docs.map(toRow)
+  const rows = mergeRows(cache, changed) // merged into the current copy, so a save made meanwhile isn't lost
+  if (rows.length !== count.data().count) return full() // deleted (or added) somewhere the change list can't show
+  lastSync = newest(changed, lastSync)
+  if (changed.length) publish(rows); else persist()
+}
+
+// One sync at a time; callers share the one in flight.
+let running = null
+export function sync() {
+  running ??= (async () => {
+    emit({ refreshing: true })
+    try {
+      await (cache && lastSync && Date.now() - lastFull < FULL_EVERY ? delta() : full())
+      emit({ error: '' })
+    } catch (err) {
+      emit({ error: err.message })
+      throw err
+    } finally {
+      running = null
+      emit({ refreshing: false })
+    }
+  })()
+  return running
+}
+// The session's first sync: started after login; candidate pages wait for it so they never edit an out-of-date copy.
+let firstSync = null
+let firstDone = false
+export const synced = () => (firstSync ??= sync().catch(() => {}).finally(() => { firstDone = true }))
+export const firstSyncDone = () => firstDone
+
+// { rows, error, refreshing, refresh }: rows are null only before the very first load on this device.
 export function useCandidates() {
-  const [rows, setRows] = useState(cache)
-  const [error, setError] = useState('')
-  const [refreshing, setRefreshing] = useState(!cache) // first visit loads straight away
-  const load = () => loadAll().then(() => setError(''), (err) => setError(err.message)).finally(() => setRefreshing(false))
-  const refresh = () => { setRefreshing(true); return load() }
+  const [s, setS] = useState(state)
   useEffect(() => {
-    subscribers.add(setRows)
-    if (!cache) load()
-    return () => subscribers.delete(setRows)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  return { rows, error, refreshing, refresh }
+    subscribers.add(setS)
+    setS(state)
+    return () => subscribers.delete(setS)
+  }, [])
+  return { ...s, refresh: () => sync().catch(() => {}) }
 }
 
 export const getCandidate = (id) => withTimeout(getDoc(doc(candidates, id))).then((d) => (d.exists() ? d.data() : null))
 
-// Another saved candidate with this phone, or null.
+// Another saved candidate with this phone, or null. Checked in the synced copy (no read); queried only without one.
 export async function findByPhone(phone, exceptId) {
+  if (cache && firstDone) return cache.find((r) => r.phone === phone && r.id !== exceptId) ?? null
   const snap = await withTimeout(getDocs(query(candidates, where('phone', '==', phone))))
   const other = snap.docs.find((d) => d.id !== exceptId)
   return other ? { id: other.id, ...other.data() } : null
@@ -81,7 +142,7 @@ export async function removeCandidate(id, name) {
         const { id: _id, ...data } = row
         try {
           await withTimeout(setDoc(doc(candidates, id), { ...data, createdAt: data.createdAt ?? serverTimestamp(), updatedAt: serverTimestamp() }))
-          if (cache) publish(sortByUpdated([{ ...row, updatedAt: Timestamp.now() }, ...cache]))
+          if (cache) publish(mergeRows(cache, [{ ...row, updatedAt: Timestamp.now() }]))
           toast(`${name || 'Candidate'} restored.`)
         } catch (err) {
           toast('Could not restore: ' + err.message, { tone: 'error' })
@@ -91,7 +152,6 @@ export async function removeCandidate(id, name) {
   })
   return true
 }
-const sortByUpdated = (rows) => [...rows].sort((a, b) => (b.updatedAt?.toMillis?.() ?? 0) - (a.updatedAt?.toMillis?.() ?? 0))
 
 // Phase button in the list: the pill changes at once, and the phase is written once clicks stop for a moment, so
 // rapid clicks make one save. The row keeps its place on screen (cache updatedAt untouched); the DB gets the new time.

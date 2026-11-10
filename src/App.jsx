@@ -10,7 +10,7 @@ import CandidateList from './CandidateList.jsx'
 import Dashboard from './Dashboard.jsx'
 import { Loading, Page } from './ui.jsx'
 import { Toaster, ask, toast } from './toast.jsx'
-import { cached, clearCache, findByPhone, getCandidate, removeCandidate, saveCandidate, useCandidates } from './data.js'
+import { cached, clearCache, findByPhone, firstSyncDone, getCandidate, removeCandidate, saveCandidate, synced, useCandidates } from './data.js'
 
 // Pages live in the URL hash: #/ (home), #/candidates[?filters], #/new, #/c/<id> (edit), #/c/<id>/view
 const go = (hash) => (window.location.hash = hash)
@@ -95,12 +95,14 @@ function Login() {
 
 // Loads a saved candidate (id) or starts a blank one (id undefined), and saves it.
 function CandidatePage({ id, view }) {
-  const [record, setRecord] = useState(() => (id ? cached(id) ?? null : undefined))
+  const [record, setRecord] = useState(() => (id ? (firstSyncDone() && cached(id)) || null : undefined))
   const [error, setError] = useState('')
 
+  // From the synced copy (no read); fetched on its own only when the copy doesn't have it (e.g. the sync failed).
   useEffect(() => {
-    if (!id || record) return // already have it from the list
-    getCandidate(id)
+    if (!id || record) return
+    synced()
+      .then(() => cached(id) ?? getCandidate(id))
       .then((r) => (r ? setRecord(r) : setError('This candidate was not found.')))
       .catch((err) => setError(err.message))
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -155,7 +157,7 @@ export default function App() {
   const hash = useHash()
   const [user, setUser] = useState(undefined) // undefined = still checking, null = logged out
   useEffect(() => onAuthStateChanged(auth, setUser), [])
-  useEffect(() => { if (user) loadForm() }, [user]) // warm the profile page so View/Update open instantly
+  useEffect(() => { if (user) { synced(); loadForm() } }, [user]) // sync once per session; warm the profile page
   if (user === undefined) return <Loading />
   if (!user) return <Login />
   const [, id, view] = hash.match(/^#\/c\/([^/]+)(\/view)?/) ?? []

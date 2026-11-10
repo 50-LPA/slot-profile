@@ -19,6 +19,12 @@ export const expMonths = (r) => totalMonths(r.companies) ?? (Number(r.expYears) 
 export const gapOf = (r) => (r.passOut || r.companies?.some((c) => c.from) ? gapTotal(r.passOut, r.companies ?? []) : null)
 const updatedMs = (r) => r.updatedAt?.toDate?.().getTime() ?? 0
 
+// Local copy + records changed on the server → one list, the changed version winning, newest first.
+export function mergeRows(rows, changed) {
+  const ids = new Set(changed.map((r) => r.id))
+  return [...changed, ...rows.filter((r) => !ids.has(r.id))].sort((a, b) => updatedMs(b) - updatedMs(a))
+}
+
 export const EXP_OPTIONS = [['all', 'All Experience'], ['0-2', '0 – 2 yrs'], ['2-5', '2 – 5 yrs'], ['5+', '5+ yrs']]
 const EXP = { all: [0, Infinity], '0-2': [0, 2], '2-5': [2, 5], '5+': [5, Infinity] }
 export const GAP_OPTIONS = [['none', 'No gap'], ['any', 'Any gap'], ['6', 'Gap > 6 mo'], ['12', 'Gap > 1 yr']]

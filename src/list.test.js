@@ -1,7 +1,7 @@
 // Run: node --test src/list.test.js
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { DEFAULT_FILTERS, filterRows, gapOf, paginate, lastVisit, sortRows, stats, visitNum } from './list.js'
+import { DEFAULT_FILTERS, filterRows, gapOf, paginate, lastVisit, mergeRows, sortRows, stats, visitNum } from './list.js'
 
 const rows = [
   { id: 'a', name: 'Asha', visitDates: ['05-OCT-2026', '12-SEP-2026'], phase: 'confirmed', advanceAmount: '20000', ctc: '900000', tech: ['JAVA'],
@@ -57,4 +57,13 @@ test('home stats', () => {
   assert.equal(s.visits, 1) // November
   assert.deepEqual(s.topTech, [['JAVA', 2], ['PHP', 1]])
   assert.equal(s.recent[0].id, 'b')
+})
+
+test('sync merge: changed rows replace cached ones, new ones join, newest first', () => {
+  const at = (d) => ({ toDate: () => new Date(2026, 10, d) })
+  const cache = [{ id: 'x', name: 'old', updatedAt: at(5) }, { id: 'y', updatedAt: at(3) }]
+  const merged = mergeRows(cache, [{ id: 'x', name: 'new', updatedAt: at(9) }, { id: 'z', updatedAt: at(4) }])
+  assert.equal(ids(merged), 'xzy')
+  assert.equal(merged[0].name, 'new')
+  assert.equal(mergeRows(cache, []).length, 2)
 })
