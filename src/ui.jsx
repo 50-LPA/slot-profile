@@ -54,8 +54,9 @@ const BUTTON = {
   warning: 'bg-amber-400 text-white enabled:hover:bg-amber-500',
   dark: 'bg-gray-800 text-white enabled:hover:bg-gray-900',
   danger: 'border border-red-200 bg-white text-red-600 enabled:hover:bg-red-50',
+  plain: 'border border-gray-200 bg-white text-gray-700 enabled:hover:bg-gray-50',
 }
-// Rounded pill button with an optional icon. variant: primary | warning | dark | danger. size: md | sm.
+// Rounded pill button with an optional icon. variant: primary | warning | dark | danger | plain. size: md | sm.
 export function Button({ variant = 'primary', size = 'md', icon, children, className = '', ...rest }) {
   const sz = size === 'sm' ? 'h-7 gap-1 px-3 text-xs' : 'h-8 gap-1.5 px-3.5 text-sm'
   return (
@@ -88,12 +89,13 @@ export function IconAction({ icon, label, tone, onClick }) {
 }
 
 // Segmented toggle. options: [value, label][]. activeClass(value) colours the selected segment.
-export function Segmented({ label, options, value, onChange, disabled, activeClass = () => 'bg-purple-600 text-white', border = 'border-purple-500', idle = 'text-purple-600 enabled:hover:bg-purple-50' }) {
+// On phones the segments share the width equally.
+export function Segmented({ label, options, value, onChange, disabled, className = '', activeClass = () => 'bg-purple-600 text-white', border = 'border-purple-500', idle = 'text-purple-600 enabled:hover:bg-purple-50' }) {
   return (
-    <div role="group" aria-label={label} className={`flex h-8 overflow-hidden rounded-full border text-[13px] font-bold ${border}`}>
+    <div role="group" aria-label={label} className={`flex h-8 overflow-hidden rounded-full border text-[13px] font-bold ${border} ${className}`}>
       {options.map(([v, text]) => (
         <button key={v} type="button" disabled={disabled} onClick={() => onChange(v)} aria-pressed={value === v}
-          className={`px-3 ${value === v ? activeClass(v) : `bg-white ${idle}`}`}>
+          className={`whitespace-nowrap px-3 mobile:flex-1 mobile:px-1.5 ${value === v ? activeClass(v) : `bg-white ${idle}`}`}>
           {text}
         </button>
       ))}
@@ -106,9 +108,10 @@ const PILL = {
   red: 'bg-red-500 text-white',
   gray: 'bg-gray-500 text-white',
   amber: 'bg-amber-400 text-white',
+  sky: 'bg-sky-500 text-white',
   purple: 'bg-purple-100 text-purple-600',
 }
-// Small rounded status label. tone: green | red | gray | amber | purple.
+// Small rounded status label. tone: green | red | gray | amber | sky | purple.
 export function Pill({ tone, children }) {
   return <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${PILL[tone]}`}>{children}</span>
 }

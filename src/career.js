@@ -5,19 +5,51 @@ export const toIdx = (ym) => (/^\d{4}-\d{2}$/.test(ym ?? '') ? Number(ym.slice(0
 export const nowIdx = (d = new Date()) => d.getFullYear() * 12 + d.getMonth()
 export const monthLabel = (i) => `${MON[i % 12]} ${Math.floor(i / 12)}`
 export const span = (months) =>
-  [Math.floor(months / 12) && `${Math.floor(months / 12)}y`, months % 12 && `${months % 12}m`].filter(Boolean).join(' ') || '0m'
+  [Math.floor(months / 12) && `${Math.floor(months / 12)}y`, months % 12 && `${months % 12}mo`].filter(Boolean).join(' ') || '0mo'
+
+// Months are counted inclusively: joining Feb and exit Jul = 6 months (Feb..Jul), and a "Present" job counts this month.
+// Internally a span is [from, end) where end = the month after the last worked one.
+
+// Companies with a joining date, as month indexes: to = last worked month (for labels), end = to + 1.
+// A missing or bad exit (before joining) gives a zero-length job.
+const datedJobs = (companies, now) => companies
+  .map((c) => {
+    const from = toIdx(c.from)
+    if (from === null) return null
+    const to = c.present ? now : toIdx(c.to)
+    return to === null || to < from ? { ...c, from, to: from, end: from } : { ...c, from, to, end: to + 1 }
+  })
+  .filter(Boolean)
+
+// Months not covered by any job: pass-out → first job, between jobs, and last exit → now when nothing is "Present".
+// Exit, joining and pass-out months count as busy: exit Jul, join Sep = 1 month gap (Aug). Overlapping jobs count once.
+// Each gap: { from, to } = where it sits on the drawing, { first, last } = the idle months, months, ongoing (still idle today).
+export function gaps(passOut, companies = [], now = nowIdx()) {
+  const jobs = datedJobs(companies, now).sort((a, b) => a.from - b.from)
+  const out = []
+  const p = toIdx(passOut)
+  let cursor = p === null ? null : p + 1 // first month not yet accounted for
+  for (const j of jobs) {
+    if (cursor !== null && j.from > cursor) out.push({ from: cursor, to: j.from, first: cursor, last: j.from - 1, months: j.from - cursor, ongoing: false })
+    cursor = Math.max(cursor ?? -Infinity, j.end, j.from + 1) // the joining month is busy even without an exit date
+  }
+  if (cursor !== null && !jobs.some((j) => j.present) && now >= cursor) out.push({ from: cursor, to: now + 1, first: cursor, last: now, months: now - cursor + 1, ongoing: true })
+  return out
+}
+
+// Total idle months (0 when there's no career data).
+export const gapTotal = (passOut, companies) => gaps(passOut, companies).reduce((sum, g) => sum + g.months, 0)
+
+// "Aug 2026" for a one-month gap, "Apr 2023 – Now" while ongoing, else "Jun 2018 – Feb 2019". fmt formats a month index.
+export const gapDates = (g, fmt = monthLabel) =>
+  g.ongoing ? `${fmt(g.first)} – Now` : g.first === g.last ? fmt(g.first) : `${fmt(g.first)} – ${fmt(g.last)}`
 
 // Turns the form's passOut + companies into positioned pieces (left/width in %) for drawing.
 export function layout(passOut, companies = [], now = nowIdx()) {
-  const jobs = companies
-    .map((c) => {
-      const from = toIdx(c.from)
-      const to = c.present ? now : toIdx(c.to) ?? from
-      return from === null ? null : { ...c, from, to: Math.max(to, from) }
-    })
-    .filter(Boolean)
+  const jobs = datedJobs(companies, now)
+  const breaks = gaps(passOut, companies, now)
   const p = toIdx(passOut)
-  const points = [p, ...jobs.flatMap((j) => [j.from, j.to])].filter((x) => x !== null)
+  const points = [p, ...jobs.flatMap((j) => [j.from, j.end]), ...breaks.map((g) => g.to)].filter((x) => x !== null)
   if (!points.length) return null
   const start = Math.min(...points)
   const end = Math.max(...points, start + 12) // at least a year wide
@@ -27,23 +59,22 @@ export function layout(passOut, companies = [], now = nowIdx()) {
   for (let y = Math.ceil(start / 12); y * 12 <= end; y += step) years.push({ year: y, left: pct(y * 12) })
   return {
     passOut: p === null ? null : { label: monthLabel(p), left: pct(p) },
-    jobs: jobs.map((j) => ({ ...j, left: pct(j.from), width: pct(j.to) - pct(j.from), months: j.to - j.from })),
+    jobs: jobs.map((j) => ({ ...j, left: pct(j.from), width: pct(j.end) - pct(j.from), months: j.end - j.from })),
+    gaps: breaks.map((g) => ({ ...g, left: pct(g.from), width: pct(g.to) - pct(g.from) })),
     years,
   }
 }
 
-// Total months worked across companies; overlapping jobs are counted once. null when no company has a joining date.
+// Total months worked across companies (inclusive, overlaps counted once). Jobs without a valid exit (and not Present)
+// count nothing. null when no company has a joining date.
 export function totalMonths(companies = [], now = nowIdx()) {
-  const spans = companies
-    .map((c) => [toIdx(c.from), c.present ? now : toIdx(c.to)])
-    .filter(([a, b]) => a !== null && b !== null && b > a)
-    .sort((x, y) => x[0] - y[0])
   if (!companies.some((c) => toIdx(c.from) !== null)) return null
+  const spans = datedJobs(companies, now).filter((j) => j.end > j.from).sort((a, b) => a.from - b.from)
   let total = 0, end = -Infinity
-  for (const [a, b] of spans) {
-    if (b <= end) continue
-    total += b - Math.max(a, end)
-    end = b
+  for (const j of spans) {
+    if (j.end <= end) continue
+    total += j.end - Math.max(j.from, end)
+    end = j.end
   }
   return total
 }

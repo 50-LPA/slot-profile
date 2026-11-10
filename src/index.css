@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* mobile: = phone screens only (never print, never desktop), so the A4 layout and the printout stay exactly as they are. */
+@custom-variant mobile (@media screen and (width < 48rem));
+
 @theme {
   --font-lato: "Lato", sans-serif;
   --font-arial: Arial, Helvetica, sans-serif;

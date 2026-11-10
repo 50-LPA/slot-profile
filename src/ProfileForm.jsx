@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { applySalary } from './salary.js'
+import { confirmAsk, toast } from './toast.jsx'
 import { ADVANCE_DUE, PHASES, TECH, advance } from './options.js'
 import { ICONS, Icon } from './icons.jsx'
 import { Button, Card, CardHeader, Segmented } from './ui.jsx'
@@ -45,7 +46,7 @@ const newForm = (today = fmtDate(new Date())) => ({
   tech: [], expYears: '', expMonths: '',
   ctc: '', varPay: '', fixPay: '', inHand: '',
   advanceAmount: '', // rupees paid towards the advance (digits); status is worked out from it
-  phase: 'inquiry', // 'inquiry' | 'confirmed'
+  phase: 'inquiry', // 'inquiry' | 'selected' | 'confirmed'
   passOut: '', // 'YYYY-MM'
   companies: [], // { name, from: 'YYYY-MM', to: 'YYYY-MM', present: bool }
   signature: '', // PNG data URL drawn on the signature pad
@@ -246,12 +247,12 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
   }, [dirty])
 
   const save = async () => {
-    if (!f.name.trim()) return alert('Please enter the candidate name before saving.')
+    if (!f.name.trim()) return toast('Please enter the candidate name before saving.', { tone: 'error' })
     setSaving(true)
     try {
       if (await onSave(f)) setSaved(f)
     } catch (err) {
-      alert('Could not save: ' + err.message)
+      toast('Could not save: ' + err.message, { tone: 'error' })
     } finally {
       setSaving(false)
     }
@@ -260,13 +261,13 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
   return (
     <Card>
       <CardHeader
-        onBack={() => (!dirty || confirm('You have unsaved changes. Leave without saving?')) && onBack()}
+        onBack={async () => (!dirty || await confirmAsk({ title: 'Leave without saving?', message: 'Your changes to this candidate will be lost.', ok: 'Leave', danger: true })) && onBack()}
         backLabel="Back to all candidates"
         title={readOnly ? 'View Candidate' : record ? 'Update Candidate' : 'New Candidate'}
         actions={<>
           <Segmented label="Profile phase" options={PHASES} value={f.phase} onChange={set('phase')} disabled={readOnly}
             border="border-gray-300" idle="text-gray-500 enabled:hover:bg-gray-50"
-            activeClass={(v) => (v === 'confirmed' ? 'bg-emerald-500 text-white' : 'bg-gray-500 text-white')} />
+            activeClass={(v) => ({ confirmed: 'bg-emerald-500', selected: 'bg-sky-500' }[v] ?? 'bg-gray-500') + ' text-white'} />
           <span className="px-1 text-xs text-gray-500">{readOnly ? 'View only' : dirty ? '● Unsaved changes' : record ? '✓ Saved' : ''}</span>
           {onDelete && <Button variant="danger" icon={ICONS.trash} onClick={onDelete}>Delete</Button>}
           {readOnly
@@ -283,10 +284,10 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
         onKeyDown={nextOnEnter}
         onSubmit={(e) => e.preventDefault()}
         inert={readOnly}
-        className="sheet mx-auto xl:mx-0 flex h-[297mm] w-[210mm] flex-col justify-between overflow-hidden bg-white p-[6mm] font-lato text-[11.5pt] leading-tight text-black"
+        className="sheet mx-auto xl:mx-0 flex h-[297mm] w-[210mm] flex-col justify-between overflow-hidden bg-white p-[6mm] font-lato text-[11.5pt] leading-tight text-black mobile:h-auto mobile:w-full mobile:gap-7 mobile:p-4"
       >
         {/* Candidate details */}
-        <section className="grid grid-cols-[102mm_minmax(0,1fr)] gap-y-[4.5mm] text-[11.5pt]">
+        <section className="grid grid-cols-[102mm_minmax(0,1fr)] gap-y-[4.5mm] text-[11.5pt] mobile:grid-cols-1 mobile:gap-y-5">
           <Field label="CANDIDATE NAME">
             <Text value={f.name} onChange={set('name')} autoFocus />
           </Field>
@@ -314,11 +315,14 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
         </section>
 
         {/* Former free space (41mm): now the career timeline */}
-        <CareerTimeline passOut={f.passOut} companies={f.companies} />
+        {/* Phones: the timeline keeps its A4 width and scrolls sideways instead of squashing the company blocks */}
+        <div className="shrink-0 mobile:-mx-4 mobile:overflow-x-auto mobile:px-4">
+          <div className="mobile:w-[190mm]"><CareerTimeline passOut={f.passOut} companies={f.companies} /></div>
+        </div>
 
         {/* Technology + Experience */}
-        <section className="flex">
-          <div className="w-[78mm]">
+        <section className="flex mobile:flex-col mobile:gap-7">
+          <div className="w-[78mm] mobile:w-full">
             <h2 className="mb-[2.6mm] font-bold underline underline-offset-2">CAREER TECHNOLOGY</h2>
             {/* 6 rows × 2 columns, filled top-to-bottom then left-to-right */}
             <ul className="grid grid-flow-col grid-cols-[auto_auto] grid-rows-6 justify-start gap-x-[6mm] gap-y-[5mm]">
@@ -349,11 +353,11 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
               <SmallNum value={f.expMonths} onChange={set('expMonths')} max={11} /> Months
             </div>
 
-            <table className="mt-[3.5mm] w-[120mm] table-fixed border-collapse border-[1.5px] border-black text-center">
+            <table className="mt-[3.5mm] w-[120mm] table-fixed border-collapse border-[1.5px] border-black text-center mobile:w-full">
               <colgroup>
-                <col className="w-[32mm]" />
-                <col className="w-[23mm]" />
-                <col className="w-[24mm]" />
+                <col className="w-[32mm] mobile:w-auto" />
+                <col className="w-[23mm] mobile:w-auto" />
+                <col className="w-[24mm] mobile:w-auto" />
                 <col />
               </colgroup>
               <tbody>
@@ -372,7 +376,7 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
               </tbody>
             </table>
 
-            <div className="mt-[6mm] w-[120mm] text-center">
+            <div className="mt-[6mm] w-[120mm] text-center mobile:w-full">
               <p className="text-[12pt]">Rs. 20,000/-&nbsp; Advance</p>
               <p className="mt-[3mm] text-[14pt] font-bold">NON REFUNDABLE</p>
               <AdvancePaid value={f.advanceAmount} onChange={set('advanceAmount')} />
@@ -381,12 +385,12 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
         </section>
 
         {/* Charges tables */}
-        <section className="flex justify-between">
+        <section className="flex justify-between mobile:flex-col mobile:gap-7">
           <div>
             <h2 className="mb-[5mm] text-center font-bold underline underline-offset-2">DOCUMENTATION&nbsp; CHARGES</h2>
-            <table className="w-[97mm] table-fixed border-collapse border border-gray-400">
+            <table className="w-[97mm] table-fixed border-collapse border border-gray-400 mobile:w-full">
               <colgroup>
-                <col className="w-[56mm]" />
+                <col className="w-[56mm] mobile:w-1/2" />
                 <col />
               </colgroup>
               <tbody>
@@ -404,9 +408,9 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
 
           <div>
             <h2 className="mb-[5mm] text-center font-bold underline underline-offset-2">INTERVIEW&nbsp; ROUNDS</h2>
-            <table className="w-[94mm] table-fixed border-collapse border border-gray-400 text-center">
+            <table className="w-[94mm] table-fixed border-collapse border border-gray-400 text-center mobile:w-full">
               <colgroup>
-                <col className="w-[48mm]" />
+                <col className="w-[48mm] mobile:w-1/2" />
                 <col />
               </colgroup>
               <thead>
@@ -438,7 +442,7 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
         </ol>
 
         {/* Signature */}
-        <section className="grid grid-cols-[102mm_minmax(0,1fr)] items-end pb-[4mm] text-[11.5pt]">
+        <section className="grid grid-cols-[102mm_minmax(0,1fr)] items-end pb-[4mm] text-[11.5pt] mobile:grid-cols-1 mobile:gap-y-6">
           <div className="flex items-end gap-[1.5mm] font-bold">
             <span className="whitespace-nowrap">CANDIDATE SIGNATURE :</span>
             <div className={`relative flex h-[16mm] min-w-0 flex-1 items-end border-b border-dashed border-gray-300 print:border-transparent print:pr-0 ${readOnly ? '' : 'pr-[7mm]'}`}>

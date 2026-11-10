@@ -46,3 +46,6 @@ public/__shot.html
 
 # Local tool settings
 .claude/settings.local.json
+
+# Local Netlify folder
+.netlify

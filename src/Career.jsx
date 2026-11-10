@@ -1,4 +1,4 @@
-import { layout, monthLabel, span, toIdx } from './career.js'
+import { gapDates, gaps, layout, monthLabel, span, toIdx } from './career.js'
 import { ICONS, Icon } from './icons.jsx'
 import { Button } from './ui.jsx'
 
@@ -10,19 +10,56 @@ const COLORS = [
   'border-rose-400 bg-rose-50 text-rose-900',
 ]
 
+const short = (i) => monthLabel(i).replace(/ \d\d(\d\d)$/, " '$1") // "Jul 2026" → "Jul '26"
+// Gaps: red dashed outline over light red stripes, so they read as "nothing here" next to the solid company blocks.
+const GAP = { backgroundImage: 'repeating-linear-gradient(135deg, #fee2e2 0 1.2mm, #fff 1.2mm 2.4mm)' }
+
 // Drawn on the A4 sheet, in the 41mm free space: company blocks sitting on a line, years and pass-out under it.
 export function CareerTimeline({ passOut, companies }) {
   const t = layout(passOut, companies)
+  const gapTotal = t?.gaps.reduce((sum, g) => sum + g.months, 0)
   return (
     <div className="relative h-[40mm] shrink-0 [print-color-adjust:exact]">
       {t ? (
         <>
+          {gapTotal > 0 && (
+            <span className="absolute right-[6mm] bottom-[1mm] rounded-full border border-red-300 bg-red-50 px-[2mm] text-[7.5pt] font-bold text-red-700">
+              Career gap: {span(gapTotal)}{t.gaps.length > 1 ? ` (${t.gaps.length} gaps)` : ''}
+            </span>
+          )}
           {/* track area, inset so edge labels don't spill off the page */}
           <div className="absolute inset-x-[6mm] top-[7mm] bottom-0">
             {/* Pass-out marker: dashed purple guide down to the line (behind the company blocks) */}
             {t.passOut && (
               <div className="absolute top-0 h-[14mm] -translate-x-1/2 border-l-[0.4mm] border-dashed border-purple-500" style={{ left: `${t.passOut.left}%` }} />
             )}
+            {t.gaps.map((g) => {
+              const dates = gapDates(g, short)
+              const narrow = g.width < 8 // too thin for text inside: label goes in a callout above the block
+              const mid = g.left + g.width / 2
+              // ponytail: callouts of two narrow gaps close together can overlap; stack them if that shows up in real data.
+              return (
+                <div key={`gap-${g.from}`}>
+                  <div
+                    title={`Gap · ${gapDates(g)} · ${span(g.months)}`}
+                    className="absolute top-0 flex h-[13mm] min-w-[3mm] flex-col justify-center overflow-hidden rounded-[1.5mm] border border-dashed border-red-400 px-[1.5mm] text-center leading-tight text-red-700 hover:border-solid hover:border-red-600"
+                    style={{ ...GAP, left: `${g.left}%`, width: `${g.width}%` }}
+                  >
+                    {!narrow && <>
+                      <span className="truncate text-[8pt] font-bold">Gap</span>
+                      <span className="truncate text-[6.5pt]">{dates}</span>
+                      <span className="truncate text-[6.5pt] font-bold">{span(g.months)}</span>
+                    </>}
+                  </div>
+                  {narrow && (
+                    <span className="absolute -top-[5.5mm] whitespace-nowrap rounded-full border border-red-300 bg-red-50 px-[1.5mm] text-[7pt] leading-[4mm] text-red-700"
+                      style={{ left: `${mid}%`, transform: `translateX(${mid > 85 ? '-100%' : mid < 15 ? '0' : '-50%'})` }}>
+                      <b>Gap {span(g.months)}</b> · {dates}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
             {t.jobs.map((j, i) => (
               <div
                 key={i}
@@ -31,9 +68,7 @@ export function CareerTimeline({ passOut, companies }) {
                 style={{ left: `${j.left}%`, width: `${j.width}%` }}
               >
                 <span className="truncate text-[8.5pt] font-bold">{j.name || 'Company'}</span>
-                <span className="truncate text-[6.5pt]">
-                  {monthLabel(j.from).replace(/ \d\d(\d\d)$/, " '$1")} – {j.present ? 'Present' : monthLabel(j.to).replace(/ \d\d(\d\d)$/, " '$1")}
-                </span>
+                <span className="truncate text-[6.5pt]">{short(j.from)} – {j.present ? 'Present' : short(j.to)}</span>
                 <span className="truncate text-[6.5pt] opacity-70">{span(j.months)}</span>
               </div>
             ))}
@@ -70,7 +105,8 @@ const input = 'h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text
 const row = 'grid grid-cols-[20px_minmax(0,1fr)_minmax(0,1fr)_24px] items-center gap-1.5 @xl:grid-cols-[20px_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_44px_24px]'
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-const YEARS = Array.from({ length: new Date().getFullYear() - 2010 + 1 }, (_, i) => String(2010 + i)) // 2010 → this year
+export const FIRST_YEAR = 2005
+const YEARS = Array.from({ length: new Date().getFullYear() - FIRST_YEAR + 1 }, (_, i) => String(FIRST_YEAR + i)) // 2005 → this year
 
 // Month dropdown then year dropdown, stored as "YYYY-MM" (half-filled stays "YYYY-" / "-MM" and is ignored by the timeline).
 function MonthYear({ value = '', onChange, label, disabled, invalid }) {
@@ -146,6 +182,28 @@ export function CareerFields({ passOut, companies, onPassOut, onCompanies }) {
           </div>
         </div>
       )}
+
+      <GapList passOut={passOut} companies={companies} />
+    </div>
+  )
+}
+
+// Side-panel list of gaps with start, end and length (narrow gaps are hard to read on the timeline).
+function GapList({ passOut, companies }) {
+  const list = gaps(passOut, companies)
+  if (!list.length) return passOut || companies.some((c) => c.from) ? <p className="text-xs text-emerald-700">✓ No career gaps</p> : null
+  const total = list.reduce((sum, g) => sum + g.months, 0)
+  return (
+    <div className="rounded-lg border border-red-200 bg-red-50/50 p-2.5">
+      <p className="mb-1.5 flex justify-between text-xs font-bold text-red-700">
+        <span>Career gaps ({list.length})</span><span>Total {span(total)}</span>
+      </p>
+      {list.map((g, i) => (
+        <p key={g.from} className="flex justify-between border-t border-red-100 py-1 text-[12px] text-red-700">
+          <span>{i + 1}. {gapDates(g)}{g.ongoing ? ' (not working)' : ''}</span>
+          <span className="font-bold">{span(g.months)}</span>
+        </p>
+      ))}
     </div>
   )
 }

@@ -5,8 +5,28 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && request.auth.token.email == '8806431723@candidate-profile.app';
     }
+
+    // Optional text field: absent, or a string of at most n characters.
+    function text(d, key, n) {
+      return !(key in d) || (d[key] is string && d[key].size() <= n);
+    }
+
+    // Basic shape checks on every save, so a bug or a bad import can't store junk.
+    // Old records keep working: fields are only checked when present, and extra (legacy) fields are allowed.
+    function validCandidate(d) {
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 200
+        && text(d, 'phone', 10) && text(d, 'parentsNo', 10) && text(d, 'spouseNo', 10)
+        && text(d, 'reference', 200) && text(d, 'visitDate', 20) && text(d, 'signDate', 20)
+        && text(d, 'passOut', 7)
+        && (!('phase' in d) || d.phase in ['inquiry', 'selected', 'confirmed'])
+        && (!('tech' in d) || (d.tech is list && d.tech.size() <= 20))
+        && (!('companies' in d) || (d.companies is list && d.companies.size() <= 50))
+        && text(d, 'signature', 400000); // drawn signature (PNG data URL), kept small by the app
+    }
+
     match /candidates/{id} {
-      allow read, write: if isAdmin();
+      allow read, delete: if isAdmin();
+      allow create, update: if isAdmin() && validCandidate(request.resource.data);
     }
   }
 }
