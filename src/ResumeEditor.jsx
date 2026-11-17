@@ -1,4 +1,5 @@
 import { useDeferredValue, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import './resume.css'
 import { Chips, Input, InsertPicker, MonthYear, Score, Section, TODAY, addBtn, inp, lbl } from './fields.jsx'
 import {
@@ -134,8 +135,9 @@ export default function ResumeEditor({ candidate, resume, onSave, onBack, draftK
     ro.observe(previewRef.current)
     const onResize = () => layoutPreview()
     window.addEventListener('resize', onResize)
+    window.addEventListener('beforeprint', showPreview) // printing from the browser menu
     document.fonts.ready.then(() => setFontTick((t) => t + 1))
-    return () => { ro.disconnect(); window.removeEventListener('resize', onResize) }
+    return () => { ro.disconnect(); window.removeEventListener('resize', onResize); window.removeEventListener('beforeprint', showPreview) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // Page breaks depend on font metrics: re-paginate once the chosen web font has loaded.
   useEffect(() => { if (d.font) document.fonts.load(`400 10pt '${d.font}'`).then(() => setFontTick((t) => t + 1), () => {}) }, [d.font])
@@ -205,10 +207,13 @@ export default function ResumeEditor({ candidate, resume, onSave, onBack, draftK
     }
   }
   // The PDF file name comes from the page title.
+  // Page breaks are measured on screen: a hidden preview (phones, Edit view) would print as one clipped page.
+  const showPreview = () => { if (previewRef.current && !previewRef.current.offsetParent) flushSync(() => setPane('preview')) }
   const pdf = () => {
     const title = document.title
     document.title = `${titleCase(d.name) || 'Candidate'} Resume`
     window.addEventListener('afterprint', () => (document.title = title), { once: true })
+    showPreview()
     window.print()
   }
 
@@ -385,7 +390,7 @@ export default function ResumeEditor({ candidate, resume, onSave, onBack, draftK
         </form>
 
         {/* Preview: its own panel, look controls on top, one page at a time; stays in view on wide screens. */}
-        <div ref={previewRef} className={`min-w-0 rounded-xl border border-slate-200 bg-slate-100 p-3 lg:sticky lg:top-3 print:static print:border-0 print:bg-transparent print:p-0 ${pane === 'edit' ? 'max-lg:hidden' : ''}`}>
+        <div ref={previewRef} className={`min-w-0 rounded-xl border border-slate-200 bg-slate-100 p-3 lg:sticky lg:top-3 print:static! print:block! print:border-0 print:bg-transparent print:p-0 ${pane === 'edit' ? 'max-lg:hidden' : ''}`}>
           {/* Look controls, one line: template · font · colour · sections · copy look */}
           <div className="mb-2 flex flex-wrap items-center justify-center gap-1.5 rounded-lg bg-white p-2 shadow-sm xl:flex-nowrap print:hidden">
             <select aria-label="Resume type" title="Resume type" value={d.template} onChange={(e) => set('template')(e.target.value)} className={pill}>
