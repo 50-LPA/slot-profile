@@ -1,4 +1,4 @@
-import { gapDates, gaps, layout, monthLabel, span, toIdx } from './career.js'
+import { gapDates, gaps, layout, monthLabel, span, toIdx, totalMonths } from './career.js'
 import { ICONS, Icon } from './icons.jsx'
 import { Button } from './ui.jsx'
 
@@ -14,88 +14,102 @@ const short = (i) => monthLabel(i).replace(/ \d\d(\d\d)$/, " '$1") // "Jul 2026"
 // Gaps: red dashed outline over light red stripes, so they read as "nothing here" next to the solid company blocks.
 const GAP = { backgroundImage: 'repeating-linear-gradient(135deg, #fee2e2 0 1.2mm, #fff 1.2mm 2.4mm)' }
 
-// Drawn on the A4 sheet, in the 41mm free space: company blocks sitting on a line, years and pass-out under it.
+const Chip = ({ className = 'border-gray-200 bg-gray-50 text-gray-700', children }) => (
+  <span className={`whitespace-nowrap rounded-full border px-[2mm] py-[0.3mm] text-[7.5pt] ${className}`}>{children}</span>
+)
+
+// Drawn on the A4 sheet, in the 41mm free space: summary chips, then company/gap blocks on a line with years under it.
+// Phones: full width (no sideways scroll) plus a list of every block, since blocks get too thin for their text.
 export function CareerTimeline({ passOut, companies }) {
   const t = layout(passOut, companies)
-  const gapTotal = t?.gaps.reduce((sum, g) => sum + g.months, 0)
+  if (!t) return (
+    <p className="flex h-[40mm] shrink-0 items-center justify-center text-center text-[9pt] text-gray-300 mobile:h-auto mobile:py-4">
+      Add pass-out and company details to draw the career timeline here.
+    </p>
+  )
+  const gapTotal = t.gaps.reduce((sum, g) => sum + g.months, 0)
+  const exp = totalMonths(companies)
+  const current = t.jobs.find((j) => j.present)
+  const rows = [...t.jobs.map((j, i) => ({ ...j, color: COLORS[i % COLORS.length] })), ...t.gaps.map((g) => ({ ...g, gap: true }))]
+    .sort((a, b) => a.from - b.from)
   return (
-    <div className="relative h-[40mm] shrink-0">
-      {t ? (
-        <>
-          {gapTotal > 0 && (
-            <span className="absolute right-[6mm] bottom-[1mm] rounded-full border border-red-300 bg-red-50 px-[2mm] text-[7.5pt] font-bold text-red-700">
-              Career gap: {span(gapTotal)}{t.gaps.length > 1 ? ` (${t.gaps.length} gaps)` : ''}
-            </span>
-          )}
-          {/* track area, inset so edge labels don't spill off the page */}
-          <div className="absolute inset-x-[6mm] top-[7mm] bottom-0">
-            {/* Pass-out marker: dashed purple guide down to the line (behind the company blocks) */}
-            {t.passOut && (
-              <div className="absolute top-0 h-[14mm] -translate-x-1/2 border-l-[0.4mm] border-dashed border-purple-500" style={{ left: `${t.passOut.left}%` }} />
-            )}
-            {t.gaps.map((g) => {
-              const dates = gapDates(g, short)
-              const narrow = g.width < 8 // too thin for text inside: label goes in a callout above the block
-              const mid = g.left + g.width / 2
-              // ponytail: callouts of two narrow gaps close together can overlap; stack them if that shows up in real data.
-              return (
-                <div key={`gap-${g.from}`}>
-                  <div
-                    title={`Gap · ${gapDates(g)} · ${span(g.months)}`}
-                    className="absolute top-0 flex h-[13mm] min-w-[3mm] flex-col justify-center overflow-hidden rounded-[1.5mm] border border-dashed border-red-400 px-[1.5mm] text-center leading-tight text-red-700 hover:border-solid hover:border-red-600"
-                    style={{ ...GAP, left: `${g.left}%`, width: `${g.width}%` }}
-                  >
-                    {!narrow && <>
-                      <span className="truncate text-[8pt] font-bold">Gap</span>
-                      <span className="truncate text-[6.5pt]">{dates}</span>
-                      <span className="truncate text-[6.5pt] font-bold">{span(g.months)}</span>
-                    </>}
-                  </div>
-                  {narrow && (
-                    <span className="absolute -top-[5.5mm] whitespace-nowrap rounded-full border border-red-300 bg-red-50 px-[1.5mm] text-[7pt] leading-[4mm] text-red-700"
-                      style={{ left: `${mid}%`, transform: `translateX(${mid > 85 ? '-100%' : mid < 15 ? '0' : '-50%'})` }}>
-                      <b>Gap {span(g.months)}</b> · {dates}
-                    </span>
-                  )}
-                </div>
-              )
-            })}
-            {t.jobs.map((j, i) => (
+    <div className="flex h-[40mm] shrink-0 flex-col mobile:h-auto">
+      <div className="flex flex-wrap items-center gap-[1.5mm]">
+        <b className="mr-[1mm] text-[9pt]">CAREER TIMELINE</b>
+        {t.passOut && <Chip className="border-purple-300 bg-purple-50 text-purple-800">🎓 Pass-out <b>{t.passOut.label}</b></Chip>}
+        {exp !== null && <Chip>Experience <b>{span(exp)}</b> · {t.jobs.length} {t.jobs.length === 1 ? 'company' : 'companies'}</Chip>}
+        {current && <Chip className="border-emerald-300 bg-emerald-50 text-emerald-800">Now at <b>{current.name || 'Company'}</b></Chip>}
+        {gapTotal > 0
+          ? <Chip className="border-red-300 bg-red-50 text-red-700">Career gap <b>{span(gapTotal)}</b>{t.gaps.length > 1 ? ` (${t.gaps.length} gaps)` : ''}</Chip>
+          : <Chip className="border-emerald-300 bg-emerald-50 text-emerald-800">✓ No career gaps</Chip>}
+      </div>
+
+      {/* track: top margin leaves room for narrow-gap callouts; edge labels hang into the sheet padding */}
+      <div className="relative mt-[7mm] h-[20mm] shrink-0">
+        {t.passOut && (
+          <div className="absolute top-0 h-[14mm] -translate-x-1/2 border-l-[0.4mm] border-dashed border-purple-500" style={{ left: `${t.passOut.left}%` }} />
+        )}
+        {t.gaps.map((g) => {
+          const dates = gapDates(g, short)
+          const narrow = g.width < 8 // too thin for text inside: label goes in a callout above the block
+          const mid = g.left + g.width / 2
+          // ponytail: callouts of two narrow gaps close together can overlap; stack them if that shows up in real data.
+          return (
+            <div key={`gap-${g.from}`}>
               <div
-                key={i}
-                title={`${j.name} · ${monthLabel(j.from)} – ${j.present ? 'Present' : monthLabel(j.to)}`}
-                className={`absolute top-0 flex h-[13mm] min-w-[3mm] flex-col justify-center overflow-hidden rounded-[1.5mm] border px-[1.5mm] text-center leading-tight ${COLORS[i % COLORS.length]}`}
-                style={{ left: `${j.left}%`, width: `${j.width}%` }}
+                title={`Gap · ${gapDates(g)} · ${span(g.months)}`}
+                className="absolute top-0 flex h-[14mm] min-w-[3mm] flex-col justify-center overflow-hidden rounded-[1.5mm] border border-dashed border-red-400 px-[1.5mm] text-center leading-tight text-red-700 hover:border-solid hover:border-red-600"
+                style={{ ...GAP, left: `${g.left}%`, width: `${g.width}%` }}
               >
-                <span className="truncate text-[8.5pt] font-bold">{j.name || 'Company'}</span>
-                <span className="truncate text-[6.5pt]">{short(j.from)} – {j.present ? 'Present' : short(j.to)}</span>
-                <span className="truncate text-[6.5pt] opacity-70">{span(j.months)}</span>
+                {!narrow && <>
+                  <span className="truncate text-[8pt] font-bold">Gap · {span(g.months)}</span>
+                  <span className="truncate text-[6.5pt]">{dates}</span>
+                </>}
               </div>
-            ))}
-
-            {/* the line */}
-            <div className="absolute inset-x-0 top-[14mm] h-[0.5mm] rounded bg-gray-800" />
-            {t.years.map((y) => (
-              <div key={y.year} className="absolute top-[14mm] -translate-x-1/2 text-center" style={{ left: `${y.left}%` }}>
-                <div className="mx-auto h-[1.8mm] w-[0.3mm] bg-gray-800" />
-                <span className="text-[7pt] text-gray-600">{y.year}</span>
-              </div>
-            ))}
-
-            {t.passOut && (
-              <div className="absolute top-[12.2mm] z-10 -translate-x-[2mm]" style={{ left: `${t.passOut.left}%` }}>
-                <div className="h-[4mm] w-[4mm] rounded-full border-[0.8mm] border-white bg-purple-600 shadow-[0_0_0_0.5mm_theme(colors.purple.600),0_0_0_1.4mm_theme(colors.purple.200)]" />
-                <span className="mt-[4mm] block whitespace-nowrap text-[7.5pt] font-bold leading-tight text-purple-700">🎓 Pass-out</span>
-                <span className="mt-[0.6mm] inline-block whitespace-nowrap rounded-full bg-purple-600 px-[1.8mm] py-[0.3mm] text-[7.5pt] font-bold text-white">{t.passOut.label}</span>
-              </div>
-            )}
+              {narrow && (
+                <span className="absolute -top-[5.5mm] whitespace-nowrap rounded-full border border-red-300 bg-red-50 px-[1.5mm] text-[7pt] leading-[4mm] text-red-700"
+                  style={{ left: `${mid}%`, transform: `translateX(${mid > 85 ? '-100%' : mid < 15 ? '0' : '-50%'})` }}>
+                  <b>Gap {span(g.months)}</b> · {dates}
+                </span>
+              )}
+            </div>
+          )
+        })}
+        {t.jobs.map((j, i) => (
+          <div
+            key={i}
+            title={`${j.name} · ${monthLabel(j.from)} – ${j.present ? 'Present' : monthLabel(j.to)} · ${span(j.months)}`}
+            className={`absolute top-0 flex h-[14mm] min-w-[3mm] flex-col justify-center overflow-hidden rounded-[1.5mm] border px-[1.5mm] text-center leading-tight ${COLORS[i % COLORS.length]}`}
+            style={{ left: `${j.left}%`, width: `${j.width}%` }}
+          >
+            <span className="truncate text-[8.5pt] font-bold">{j.name || 'Company'}</span>
+            <span className="truncate text-[6.5pt]">{short(j.from)} – {j.present ? 'Now' : short(j.to)}</span>
+            <span className="truncate text-[6.5pt] font-bold opacity-70">{span(j.months)}</span>
           </div>
-        </>
-      ) : (
-        <p className="flex h-full items-center justify-center text-[9pt] text-gray-300">
-          Add pass-out and company details on the right to draw the career timeline here.
-        </p>
-      )}
+        ))}
+
+        <div className="absolute inset-x-0 top-[15mm] h-[0.5mm] rounded bg-gray-800" />
+        {t.years.map((y) => (
+          <div key={y.year} className="absolute top-[15mm] -translate-x-1/2 text-center" style={{ left: `${y.left}%` }}>
+            <div className="mx-auto h-[1.5mm] w-[0.3mm] bg-gray-800" />
+            <span className="text-[7pt] leading-none text-gray-600">{y.year}</span>
+          </div>
+        ))}
+        {t.passOut && (
+          <div title={`Pass-out · ${t.passOut.label}`} className="absolute top-[13.25mm] z-10 h-[4mm] w-[4mm] -translate-x-1/2 rounded-full border-[0.8mm] border-white bg-purple-600 shadow-[0_0_0_0.5mm_theme(colors.purple.600),0_0_0_1.2mm_theme(colors.purple.200)]" style={{ left: `${t.passOut.left}%` }} />
+        )}
+      </div>
+
+      <ol className="mt-3 hidden divide-y divide-gray-100 text-[13px] mobile:block">
+        {rows.map((r) => (
+          <li key={`${r.gap ? 'g' : 'j'}-${r.from}-${r.name ?? ''}`} className={`flex items-center gap-2 py-1.5 ${r.gap ? 'text-red-700' : ''}`}>
+            <span className={`h-3 w-3 shrink-0 rounded-sm border ${r.gap ? 'border-dashed border-red-400' : r.color}`} style={r.gap ? GAP : undefined} />
+            <span className="min-w-0 flex-1 truncate font-bold">{r.gap ? 'Gap' : r.name || 'Company'}</span>
+            <span className="whitespace-nowrap text-gray-500">{r.gap ? gapDates(r, short) : `${short(r.from)} – ${r.present ? 'Now' : short(r.to)}`}</span>
+            <span className="w-14 shrink-0 text-right font-bold">{span(r.months)}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   )
 }

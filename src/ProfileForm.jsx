@@ -28,8 +28,7 @@ const TERMS = [
   ['Min. 1 Mock Interview:', 'Mandatory before live interviews.'],
   ['₹20,000 Advance:', 'Non-refundable, even if no interview is attended.'],
   ['Resume:', 'Prepared by us; Naukri profile will only be consulted & reviewed only, not created from our end.'],
-  ['₹20,000 = 7 Interview rounds:', 'Pay another ₹20,000 for the next 5 interview rounds.'],
-  ['Advance is Separate:', 'It is not part of the final payment and works as an interview recharge for each 7 interview rounds.'],
+  ['Advance is Separate:', 'It is not part of the final payment.'],
   [
     'Final Payment:',
     <>Must be paid within <u>7 days of receiving the offer letter</u>. Cannot be delayed until salary or joining.</>,
@@ -295,6 +294,12 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
 
       {/* Inner card, split: A4 sheet left | career fields right (stacked on smaller screens). Only two cards in total. */}
       <div className="mt-4 flex flex-col overflow-hidden rounded-xl border border-gray-200 xl:flex-row">
+      <aside inert={readOnly} className="min-w-0 flex-1 border-b border-gray-200 p-4 xl:border-b-0">
+        <div className="xl:sticky xl:top-4">
+          <CareerFields passOut={f.passOut} companies={f.companies} onPassOut={set('passOut')} onCompanies={setCompanies} />
+        </div>
+      </aside>
+      <div className="hidden w-px bg-gray-200 xl:block" />
       <div className="overflow-x-auto xl:shrink-0">
       <form
         onKeyDown={nextOnEnter}
@@ -331,10 +336,7 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
         </section>
 
         {/* Former free space (41mm): now the career timeline */}
-        {/* Phones: the timeline keeps its A4 width and scrolls sideways instead of squashing the company blocks */}
-        <div className="shrink-0 mobile:-mx-4 mobile:overflow-x-auto mobile:px-4">
-          <div className="mobile:w-[190mm]"><CareerTimeline passOut={f.passOut} companies={f.companies} /></div>
-        </div>
+        <CareerTimeline passOut={f.passOut} companies={f.companies} />
 
         {/* Technology + Experience */}
         <section className="flex mobile:flex-col mobile:gap-7">
@@ -459,9 +461,9 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
 
         {/* Signature */}
         <section className="grid grid-cols-[102mm_minmax(0,1fr)] items-end pb-[4mm] text-[11.5pt] mobile:grid-cols-1 mobile:gap-y-6">
-          <div className="flex items-end gap-[1.5mm] font-bold">
+          <div className="flex flex-col-reverse gap-[4mm] font-bold">
             <span className="whitespace-nowrap">CANDIDATE SIGNATURE :</span>
-            <div className={`relative flex h-[16mm] min-w-0 flex-1 items-end border-b border-dashed border-gray-300 ${readOnly ? '' : 'pr-[7mm]'}`}>
+            <div className={`relative flex h-[20mm] min-w-0 items-end border-b border-dashed border-gray-300 ${readOnly ? '' : 'pr-[7mm]'}`}>
               {f.signature && <img src={f.signature} alt="Candidate signature" className="h-full max-w-full object-contain object-left" />}
               {f.signedAt && (
                 <span className="absolute -bottom-[3.6mm] left-0 whitespace-nowrap text-[7pt] font-normal text-gray-500">
@@ -471,8 +473,10 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
               {!readOnly && (
                 <button type="button" onClick={() => setSigning(true)}
                   aria-label={f.signature ? 'Re-sign' : 'Sign here'} title={f.signature ? 'Re-sign' : 'Sign here'}
-                  className="absolute right-0 bottom-[1mm] flex h-[6mm] w-[6mm] items-center justify-center rounded-full border border-purple-300 bg-white text-purple-600 shadow-sm hover:bg-purple-50">
-                  <Icon d={ICONS.signature} className="h-[3.5mm] w-[3.5mm]" />
+                  className="group absolute inset-0 cursor-pointer rounded-sm hover:bg-purple-50/40">
+                  <span className="absolute right-0 bottom-[1mm] flex h-[6mm] w-[6mm] items-center justify-center rounded-full border border-purple-300 bg-white text-purple-600 shadow-sm group-hover:bg-purple-50">
+                    <Icon d={ICONS.signature} className="h-[3.5mm] w-[3.5mm]" />
+                  </span>
                 </button>
               )}
             </div>
@@ -487,12 +491,6 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
         </p>
       </form>
       </div>
-      <div className="hidden w-px bg-gray-200 xl:block" />
-      <aside inert={readOnly} className="min-w-0 flex-1 border-t border-gray-200 p-4 xl:border-t-0">
-        <div className="xl:sticky xl:top-4">
-          <CareerFields passOut={f.passOut} companies={f.companies} onPassOut={set('passOut')} onCompanies={setCompanies} />
-        </div>
-      </aside>
       </div>
       {signing && (
         <Suspense fallback={null}>
