@@ -157,7 +157,7 @@ export default function CandidateList({ rows, error, refreshing, refresh }) {
                 {pg.items.map((r, i) => (
                   <tr key={r.id} className="hover:bg-purple-50/30">
                     <td className={td}>{pg.first + i}</td>
-                    <td className={`${td} text-left`}>{r.name || '-'}</td>
+                    <td className={`${td} text-left`}><div className="flex items-center gap-2">{r.name || '-'}<span title={r.signature ? 'Signed' : 'Not signed'} aria-label={r.signature ? 'Signed' : 'Not signed'} className={`ml-auto shrink-0 ${r.signature ? 'text-emerald-600' : 'text-gray-300'}`}><Icon d={ICONS.signature} className="h-4 w-4" /></span></div></td>
                     <td className={td}><VisitDate r={r} /></td>
                     <td className={td}>{r.reference || '-'}</td>
                     <td className={td}>{r.tech?.length ? r.tech.join(', ') : '-'}</td>
@@ -185,7 +185,7 @@ export default function CandidateList({ rows, error, refreshing, refresh }) {
             {pg.items.map((r) => (
               <li key={r.id} className="rounded-xl border border-gray-200 p-3 text-[13px] text-gray-700">
                 <div className="flex items-start justify-between gap-2">
-                  <button type="button" onClick={() => go(`#/c/${r.id}/view`)} className="text-left text-sm font-bold text-gray-900">{r.name || '-'}</button>
+                  <button type="button" onClick={() => go(`#/c/${r.id}/view`)} className="flex flex-1 items-center gap-2 text-left text-sm font-bold text-gray-900">{r.name || '-'}<span title={r.signature ? 'Signed' : 'Not signed'} aria-label={r.signature ? 'Signed' : 'Not signed'} className={`ml-auto shrink-0 ${r.signature ? 'text-emerald-600' : 'text-gray-300'}`}><Icon d={ICONS.signature} className="h-4 w-4" /></span></button>
                   <PhaseButton r={r} />
                 </div>
                 <p className="mt-0.5 text-xs text-gray-500">
