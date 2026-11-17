@@ -45,6 +45,7 @@ function persist() {
 }
 export function clearCache() { // on logout: the copy holds candidate details, so it doesn't stay on the device
   cache = lastSync = null; lastFull = 0; firstSync = null; firstDone = false
+  resumeCache.clear()
   state = { rows: null, refreshing: false, error: '' }
   try {
     localStorage.removeItem(KEY)
@@ -62,11 +63,13 @@ const newest = (rows, since) => rows.reduce((m, r) => (r.updatedAt && (!m || r.u
 async function full() {
   const rows = (await withTimeout(getDocs(query(candidates, orderBy('updatedAt', 'desc'))))).docs.map(toRow)
   lastSync = newest(rows, null); lastFull = Date.now()
+  resumeCache.clear()
   publish(rows)
 }
 async function delta() {
   const [snap, count] = await withTimeout(Promise.all([getDocs(query(candidates, where('updatedAt', '>', lastSync))), getCount(candidates)]))
   const changed = snap.docs.map(toRow)
+  changed.forEach((r) => resumeCache.delete(r.id)) // changed elsewhere (or by us): its resume may be newer
   const rows = mergeRows(cache, changed) // merged into the current copy, so a save made meanwhile isn't lost
   if (rows.length !== count.data().count) return full() // deleted (or added) somewhere the change list can't show
   lastSync = newest(changed, lastSync)
@@ -148,6 +151,7 @@ export async function removeCandidate(id, name) {
     batch.delete(doc(candidates, id))
     batch.delete(doc(resumes, id)) // also when hasResume is missing: deleting nothing is fine
     await withTimeout(batch.commit())
+    resumeCache.delete(id)
   } catch (err) {
     toast('Could not delete: ' + err.message, { tone: 'error' })
     return false
@@ -163,6 +167,7 @@ export async function removeCandidate(id, name) {
           batch.set(doc(candidates, id), { ...data, createdAt: data.createdAt ?? serverTimestamp(), updatedAt: serverTimestamp() })
           if (resume) batch.set(doc(resumes, id), { ...resume, updatedAt: serverTimestamp() })
           await withTimeout(batch.commit())
+          if (resume) resumeCache.set(id, resume)
           if (cache) publish(mergeRows(cache, [{ ...row, updatedAt: Timestamp.now() }]))
           toast(`${name || 'Candidate'} restored.`)
         } catch (err) {
@@ -174,7 +179,16 @@ export async function removeCandidate(id, name) {
   return true
 }
 
-export const getResume = (id) => withTimeout(getDoc(doc(resumes, id))).then((d) => (d.exists() ? d.data() : null))
+// Resumes read this session, so reopening one (or copying its look, or Undo after delete) costs no read.
+// An entry is dropped when a sync brings a change to that candidate.
+const resumeCache = new Map()
+export async function getResume(id) {
+  if (resumeCache.has(id)) return resumeCache.get(id)
+  const d = await withTimeout(getDoc(doc(resumes, id)))
+  const r = d.exists() ? d.data() : null
+  resumeCache.set(id, r)
+  return r
+}
 
 // Saves a candidate's resume and, in the same write, stamps the candidate (hasResume, resumeAt) so lists show
 // the resume status and when it was last saved without reading any resume.
@@ -184,6 +198,7 @@ export async function saveResume(id, resume) {
   batch.set(doc(resumes, id), { ...data, updatedAt: serverTimestamp() })
   batch.set(doc(candidates, id), { hasResume: true, resumeAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true })
   await withTimeout(batch.commit())
+  resumeCache.set(id, { ...data, updatedAt: Timestamp.now() })
   if (cache) publish(cache.map((r) => (r.id === id ? { ...r, hasResume: true, resumeAt: Timestamp.now() } : r)))
 }
 

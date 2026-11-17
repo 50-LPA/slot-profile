@@ -9,7 +9,7 @@ import {
 } from './resume.js'
 import { totalMonths } from './career.js'
 import { titleCase } from './options.js'
-import { Button, CardHeader, CircleButton, Segmented } from './ui.jsx'
+import { Button, CardHeader, CircleButton } from './ui.jsx'
 import { ICONS, Icon } from './icons.jsx'
 import { ask, confirmAsk, toast } from './toast.jsx'
 import { useUnsaved } from './unsaved.js'
@@ -77,6 +77,7 @@ const jump = (id) => {
   el.open = true
   el.scrollIntoView({ block: 'start' })
 }
+const pill = 'h-7 min-w-0 shrink-0 rounded-full border border-gray-200 bg-white px-2 text-xs text-gray-700 outline-none hover:bg-gray-50 focus:border-brand-400'
 const iconBtn = 'h-6 w-6 rounded-md text-sm leading-none text-gray-500 hover:bg-gray-100 disabled:opacity-25 disabled:hover:bg-transparent'
 
 // `resume` = the saved resume, or null for a new one (then prefilled from `candidate`). onSave(resume) resolves when saved.
@@ -106,8 +107,8 @@ export default function ResumeEditor({ candidate, resume, onSave, onBack, draftK
   const del = (k, i) => setD((p) => ({ ...p, [k]: p[k].filter((_, j) => j !== i) }))
   const move = (k, i, dir) => setD((p) => ({ ...p, [k]: moveItem(p[k], i, dir) }))
 
-  // Shows the current page and scales it to fit the panel: its width, and on wide screens also the window height
-  // (the panel stays in view while the form scrolls).
+  // Shows the current page at the full width of the panel. On wide screens the panel sticks: when it is taller than
+  // the window it scrolls with the form until its bottom is in view, then stays (negative sticky top).
   const layoutPreview = () => {
     const root = pagesRef.current, box = previewRef.current, stage = stageRef.current
     if (!root || !box) return
@@ -115,12 +116,11 @@ export default function ResumeEditor({ candidate, resume, onSave, onBack, draftK
     const cur = Math.min(page, pages.length - 1)
     pages.forEach((p, i) => (p.style.display = i === cur ? '' : 'none'))
     const pw = root.offsetWidth, ph = pages[cur]?.offsetHeight || 1
-    const wide = window.matchMedia('(min-width: 1024px)').matches
-    const byH = wide ? (window.innerHeight - 72 - stage.offsetTop - (pages.length > 1 ? 52 : 16)) / ph : Infinity
-    const s = Math.max(0.2, Math.min(1, (box.clientWidth - 24) / pw, byH))
+    const s = Math.max(0.2, Math.min(1, (box.clientWidth - 24) / pw))
     root.style.transform = `scale(${s})`
     stage.style.width = pw * s + 'px'
     stage.style.height = ph * s + 'px'
+    box.style.top = window.matchMedia('(min-width: 1024px)').matches ? `${Math.min(12, window.innerHeight - box.offsetHeight - 12)}px` : ''
   }
   useLayoutEffect(() => {
     const n = paginate(pagesRef.current, shown)
@@ -386,28 +386,27 @@ export default function ResumeEditor({ candidate, resume, onSave, onBack, draftK
 
         {/* Preview: its own panel, look controls on top, one page at a time; stays in view on wide screens. */}
         <div ref={previewRef} className={`min-w-0 rounded-xl border border-slate-200 bg-slate-100 p-3 lg:sticky lg:top-3 print:static print:border-0 print:bg-transparent print:p-0 ${pane === 'edit' ? 'max-lg:hidden' : ''}`}>
-          <div className="mb-2 flex flex-wrap items-center justify-center gap-2 rounded-lg bg-white p-2 shadow-sm print:hidden">
-            <Segmented label="Template" options={Object.entries(TEMPLATES)} value={d.template} onChange={set('template')} />
-            <select aria-label="Font" value={d.font} onChange={(e) => set('font')(e.target.value)}
-              className="h-8 rounded-full border border-gray-200 bg-white px-3 text-[13px] text-gray-800 outline-none focus:border-brand-400">
+          {/* Look controls, one line: template · font · colour · sections · copy look */}
+          <div className="mb-2 flex flex-wrap items-center justify-center gap-1.5 rounded-lg bg-white p-2 shadow-sm xl:flex-nowrap print:hidden">
+            <select aria-label="Resume type" title="Resume type" value={d.template} onChange={(e) => set('template')(e.target.value)} className={pill}>
+              {Object.entries(TEMPLATES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+            <select aria-label="Font" title="Font" value={d.font} onChange={(e) => set('font')(e.target.value)} className={pill}>
               {Object.entries(FONTS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
-            <div role="radiogroup" aria-label="Accent colour" className="flex items-center gap-1.5">
+            <div role="radiogroup" aria-label="Accent colour" className="flex shrink-0 items-center gap-1 px-1">
               {Object.entries(COLORS).map(([c, n]) => (
                 <button key={c} type="button" role="radio" aria-checked={d.accent === c} aria-label={n} title={n} onClick={() => set('accent')(c)}
-                  style={{ background: c }} className={`h-5 w-5 rounded-full ${d.accent === c ? 'ring-2 ring-gray-900 ring-offset-2' : ''}`} />
+                  style={{ background: c }} className={`h-4 w-4 rounded-full ${d.accent === c ? 'ring-2 ring-gray-900 ring-offset-1' : ''}`} />
               ))}
             </div>
-            <div className="flex w-full flex-wrap items-center justify-center gap-2 border-t border-gray-100 pt-2">
-              <SectionsMenu d={d} setD={setD} />
-              {others.length > 0 && (
-                <select value="" aria-label="Copy the look from another resume" onChange={(e) => e.target.value && copyLook(e.target.value)}
-                  className="h-7 max-w-52 rounded-full border border-gray-200 bg-white px-2 text-xs text-gray-700">
-                  <option value="">Copy look from…</option>
-                  {others.map((o) => <option key={o.id} value={o.id}>{o.name || 'Candidate'}</option>)}
-                </select>
-              )}
-            </div>
+            <SectionsMenu d={d} setD={setD} />
+            {others.length > 0 && (
+              <select value="" aria-label="Copy the look from another resume" onChange={(e) => e.target.value && copyLook(e.target.value)} className={`${pill} max-w-36`}>
+                <option value="">Copy look from…</option>
+                {others.map((o) => <option key={o.id} value={o.id}>{o.name || 'Candidate'}</option>)}
+              </select>
+            )}
           </div>
           <p role="status" className={`mb-1 text-center text-xs print:hidden ${ok ? 'text-gray-500' : 'font-bold text-red-600'}`}>
             {pageCount} page{pageCount > 1 ? 's' : ''} · A4{ok ? '' : ` · Add at least ${SUMMARY_MIN} summary points to download (${filled}/${SUMMARY_MIN})`}
@@ -439,7 +438,7 @@ function SectionsMenu({ d, setD }) {
   const shift = (i, dir) => setD((p) => ({ ...p, sectionOrder: moveItem(p.sectionOrder, i, dir) }))
   return (
     <details className="relative">
-      <summary className="flex h-7 cursor-pointer list-none items-center rounded-full border border-gray-200 bg-white px-3 text-xs text-gray-700 hover:bg-gray-50 [&::-webkit-details-marker]:hidden">
+      <summary className="flex h-7 shrink-0 cursor-pointer list-none items-center whitespace-nowrap rounded-full border border-gray-200 bg-white px-2.5 text-xs text-gray-700 hover:bg-gray-50 [&::-webkit-details-marker]:hidden">
         Sections{d.hiddenSections.length ? ` (${d.hiddenSections.length} hidden)` : ''} ▾
       </summary>
       <ul className="absolute left-1/2 z-20 mt-1 w-56 -translate-x-1/2 rounded-xl border border-gray-200 bg-white p-1.5 text-xs shadow-lg">
