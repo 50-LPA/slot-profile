@@ -408,10 +408,9 @@ export default function ResumeEditor({ candidate, resume, onSave, onBack, draftK
               </select>
             )}
           </div>
-          <p role="status" className={`mb-1 text-center text-xs print:hidden ${ok ? 'text-gray-500' : 'font-bold text-red-600'}`}>
-            {pageCount} page{pageCount > 1 ? 's' : ''} · A4{ok ? '' : ` · Add at least ${SUMMARY_MIN} summary points to download (${filled}/${SUMMARY_MIN})`}
+          <p role="status" className="mb-2 text-center text-xs font-bold text-red-600 empty:hidden print:hidden">
+            {ok ? '' : `Add at least ${SUMMARY_MIN} summary points to download (${filled}/${SUMMARY_MIN})`}
           </p>
-          <p className="mb-2 text-center text-[11px] text-gray-400 print:hidden">PDF tip: in the print window choose “Save as PDF” and turn off “Headers and footers”.</p>
           <div ref={stageRef} className="rb-stage relative mx-auto overflow-hidden print:overflow-visible"><div ref={pagesRef} className="rb-pages" /></div>
           {pageCount > 1 && (
             <div className="mt-2 flex items-center justify-center gap-2 text-xs text-gray-600 print:hidden">
