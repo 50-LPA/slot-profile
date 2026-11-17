@@ -1,10 +1,21 @@
 import { useEffect, useState } from 'react'
 import { ICONS, Icon } from './icons.jsx'
 import { Button, Card, CardHeader, CircleButton, FilterSelect, IconAction, Pill, SearchInput, SearchSelect } from './ui.jsx'
-import { ADVANCE_STATUS, PHASES, PHASE_TONE, TECH, advance, phaseLabel, visitsOf } from './options.js'
+import { ADVANCE_STATUS, PHASES, PHASE_TONE, TECH, advance, phaseLabel, resumeSaved, visitsOf } from './options.js'
 import { span } from './career.js'
 import { DEFAULT_FILTERS, EXP_OPTIONS, GAP_OPTIONS, expMonths, filterRows, gapOf, lastVisit, paginate, sortRows } from './list.js'
 import { removeCandidate, setPhase } from './data.js'
+
+// Signature and resume status next to the name: coloured when done, grey when not.
+function StatusIcons({ r }) {
+  const resume = r.hasResume ? `Resume ready${resumeSaved(r) ? ` · saved ${resumeSaved(r)}` : ''}` : 'No resume yet'
+  return (
+    <span className="ml-auto flex shrink-0 gap-1">
+      <span title={r.signature ? 'Signed' : 'Not signed'} aria-label={r.signature ? 'Signed' : 'Not signed'} className={r.signature ? 'text-emerald-600' : 'text-gray-300'}><Icon d={ICONS.signature} className="h-4 w-4" /></span>
+      <span title={resume} aria-label={resume} className={r.hasResume ? 'text-brand-600' : 'text-gray-300'}><Icon d={ICONS.document} className="h-4 w-4" /></span>
+    </span>
+  )
+}
 
 // Phase pill as a button: each click moves to the next phase (Inquiry ↔ Confirmed).
 function PhaseButton({ r }) {
@@ -13,7 +24,7 @@ function PhaseButton({ r }) {
   return (
     <button type="button" onClick={() => setPhase(r.id, next)} title={`Click to change to ${nextLabel}`}
       aria-label={`Phase ${phaseLabel(r)}, change to ${nextLabel}`}
-      className="cursor-pointer select-none rounded-full transition hover:ring-2 hover:ring-purple-200 hover:ring-offset-1">
+      className="cursor-pointer select-none rounded-full transition hover:ring-2 hover:ring-brand-200 hover:ring-offset-1">
       <Pill tone={PHASE_TONE[r.phase]}>{phaseLabel(r)}</Pill>
     </button>
   )
@@ -22,7 +33,7 @@ function PhaseButton({ r }) {
 const go = (hash) => (window.location.hash = hash)
 const th = 'border border-gray-200 px-3 py-2 font-bold text-gray-700'
 const td = 'border border-gray-200 px-3 py-2'
-const dateInput = 'h-8 rounded-full border border-gray-200 bg-white px-3 text-[13px] text-gray-800 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100'
+const dateInput = 'h-8 rounded-full border border-gray-200 bg-white px-3 text-[13px] text-gray-800 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100'
 
 // 1000000 → "10 LPA", 1050000 → "10.5 LPA" (list only; the form keeps the full number).
 const lpa = (v) => (Number(v) ? `${+(Number(v) / 1e5).toFixed(1)} LPA` : '-')
@@ -49,7 +60,7 @@ function AdvanceText({ r }) {
 // Last visit, plus how many visits in all when more than one ("05-NOV-2026 ×3"); every date on hover.
 function VisitDate({ r }) {
   const all = visitsOf(r)
-  return <span title={all.join(', ')}>{lastVisit(r) || '-'}{all.length > 1 && <span className="ml-1 text-xs font-bold text-purple-600">×{all.length}</span>}</span>
+  return <span title={all.join(', ')}>{lastVisit(r) || '-'}{all.length > 1 && <span className="ml-1 text-xs font-bold text-brand-600">×{all.length}</span>}</span>
 }
 
 // Filters live in the URL (#/candidates?phase=confirmed&page=2): links from the home page set them, Back keeps them.
@@ -77,8 +88,8 @@ export default function CandidateList({ rows, error, refreshing, refresh }) {
   // Clickable column header: click sorts A→Z / low→high, click again reverses. ▲ / ▼ shows the current order.
   const sortTh = (k, label, className = '') => (
     <th className={`${th} ${className}`} aria-sort={f.sort === k ? (f.dir === 'asc' ? 'ascending' : 'descending') : undefined}>
-      <button type="button" onClick={() => sortBy(k)} className="inline-flex items-center gap-1 hover:text-purple-600" title={`Sort by ${label}`}>
-        {label}<span className={`text-[10px] ${f.sort === k ? 'text-purple-600' : 'text-gray-300'}`}>{f.sort === k && f.dir === 'asc' ? '▲' : '▼'}</span>
+      <button type="button" onClick={() => sortBy(k)} className="inline-flex items-center gap-1 hover:text-brand-600" title={`Sort by ${label}`}>
+        {label}<span className={`text-[10px] ${f.sort === k ? 'text-brand-600' : 'text-gray-300'}`}>{f.sort === k && f.dir === 'asc' ? '▲' : '▼'}</span>
       </button>
     </th>
   )
@@ -86,6 +97,7 @@ export default function CandidateList({ rows, error, refreshing, refresh }) {
     <div className="flex justify-center gap-1.5">
       <IconAction icon={ICONS.eye} tone="sky" label={`View ${r.name}`} onClick={() => go(`#/c/${r.id}/view`)} />
       <IconAction icon={ICONS.pencil} tone="amber" label={`Update ${r.name}`} onClick={() => go(`#/c/${r.id}`)} />
+      <IconAction icon={ICONS.document} tone="purple" label={`${r.hasResume ? 'Edit' : 'Build'} resume of ${r.name}`} onClick={() => go(`#/r/${r.id}`)} />
       <IconAction icon={ICONS.trash} tone="red" label={`Delete ${r.name}`} onClick={() => removeCandidate(r.id, r.name)} />
     </div>
   )
@@ -125,7 +137,7 @@ export default function CandidateList({ rows, error, refreshing, refresh }) {
           </span>
           {active > 0 && (
             <button type="button" onClick={() => setF((p) => ({ ...DEFAULT_FILTERS, q: p.q, sort: p.sort, dir: p.dir, size: p.size }))}
-              className="col-span-2 h-8 rounded-full px-2 text-xs font-bold text-purple-600 hover:bg-purple-50">Clear filters</button>
+              className="col-span-2 h-8 rounded-full px-2 text-xs font-bold text-brand-600 hover:bg-brand-50">Clear filters</button>
           )}
         </div>
         <SearchInput label="Search candidates" value={f.q} onChange={set('q')} placeholder="Name, phone or reference..." className="md:w-44" />
@@ -155,9 +167,9 @@ export default function CandidateList({ rows, error, refreshing, refresh }) {
               </thead>
               <tbody>
                 {pg.items.map((r, i) => (
-                  <tr key={r.id} className="hover:bg-purple-50/30">
+                  <tr key={r.id} className="hover:bg-brand-50/30">
                     <td className={td}>{pg.first + i}</td>
-                    <td className={`${td} text-left`}><div className="flex items-center gap-2">{r.name || '-'}<span title={r.signature ? 'Signed' : 'Not signed'} aria-label={r.signature ? 'Signed' : 'Not signed'} className={`ml-auto shrink-0 ${r.signature ? 'text-emerald-600' : 'text-gray-300'}`}><Icon d={ICONS.signature} className="h-4 w-4" /></span></div></td>
+                    <td className={`${td} text-left`}><div className="flex items-center gap-2">{r.name || '-'}<StatusIcons r={r} /></div></td>
                     <td className={td}><VisitDate r={r} /></td>
                     <td className={td}>{r.reference || '-'}</td>
                     <td className={td}>{r.tech?.length ? r.tech.join(', ') : '-'}</td>
@@ -185,11 +197,11 @@ export default function CandidateList({ rows, error, refreshing, refresh }) {
             {pg.items.map((r) => (
               <li key={r.id} className="rounded-xl border border-gray-200 p-3 text-[13px] text-gray-700">
                 <div className="flex items-start justify-between gap-2">
-                  <button type="button" onClick={() => go(`#/c/${r.id}/view`)} className="flex flex-1 items-center gap-2 text-left text-sm font-bold text-gray-900">{r.name || '-'}<span title={r.signature ? 'Signed' : 'Not signed'} aria-label={r.signature ? 'Signed' : 'Not signed'} className={`ml-auto shrink-0 ${r.signature ? 'text-emerald-600' : 'text-gray-300'}`}><Icon d={ICONS.signature} className="h-4 w-4" /></span></button>
+                  <button type="button" onClick={() => go(`#/c/${r.id}/view`)} className="flex flex-1 items-center gap-2 text-left text-sm font-bold text-gray-900">{r.name || '-'}<StatusIcons r={r} /></button>
                   <PhaseButton r={r} />
                 </div>
                 <p className="mt-0.5 text-xs text-gray-500">
-                  {r.phone ? <a href={`tel:${r.phone}`} className="text-purple-600">{r.phone}</a> : 'No phone'} · {lastVisit(r) ? <VisitDate r={r} /> : 'No visit date'}{r.reference ? ` · ${r.reference}` : ''}
+                  {r.phone ? <a href={`tel:${r.phone}`} className="text-brand-600">{r.phone}</a> : 'No phone'} · {lastVisit(r) ? <VisitDate r={r} /> : 'No visit date'}{r.reference ? ` · ${r.reference}` : ''}
                 </p>
                 {r.tech?.length > 0 && <p className="mt-1.5">{r.tech.join(', ')}</p>}
                 <dl className="mt-2 grid grid-cols-3 gap-1 text-xs">

@@ -7,13 +7,17 @@
 // Cost per sync: 2 reads + 1 per changed record (was: 1 per record, on every page load and every Refresh).
 import { useEffect, useState } from 'react'
 import {
-  Timestamp, addDoc, collection, deleteDoc, doc, getCount, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, where,
+  Timestamp, addDoc, collection, doc, getCount, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, where, writeBatch,
 } from 'firebase/firestore/lite'
 import { db, withTimeout } from './firebase.js'
 import { confirmAsk, toast } from './toast.jsx'
 import { mergeRows } from './list.js'
+import { titleCase } from './options.js'
 
 const candidates = collection(db, 'candidates')
+// One resume per candidate, same id. Kept out of the candidate record so list syncs never download resumes;
+// the candidate only carries `hasResume: true` (set on the first save) for the Resumes tab.
+const resumes = collection(db, 'resumes')
 const KEY = 'slot-profile:candidates'
 const FULL_EVERY = 24 * 60 * 60 * 1000 // full reload at least this often (ms)
 
@@ -29,7 +33,9 @@ export const cached = (id) => cache?.find((r) => r.id === id)
 // Timestamps are stored as { seconds, nanoseconds } and turned back into Timestamps on load.
 function restore() {
   try {
-    return JSON.parse(localStorage.getItem(KEY), (_k, v) => (v?.seconds != null && v?.nanoseconds != null ? new Timestamp(v.seconds, v.nanoseconds) : v)) ?? {}
+    const saved = JSON.parse(localStorage.getItem(KEY), (_k, v) => (v?.seconds != null && v?.nanoseconds != null ? new Timestamp(v.seconds, v.nanoseconds) : v)) ?? {}
+    if (saved.rows) saved.rows = saved.rows.map(named) // copies saved before names were title-cased
+    return saved
   } catch { return {} }
 }
 // ponytail: localStorage (~5 MB) holds a few hundred signed records; move to IndexedDB if it ever fills.
@@ -40,10 +46,17 @@ function persist() {
 export function clearCache() { // on logout: the copy holds candidate details, so it doesn't stay on the device
   cache = lastSync = null; lastFull = 0; firstSync = null; firstDone = false
   state = { rows: null, refreshing: false, error: '' }
-  try { localStorage.removeItem(KEY) } catch { /* nothing stored */ }
+  try {
+    localStorage.removeItem(KEY)
+    Object.keys(localStorage).filter((k) => k.startsWith(DRAFT)).forEach((k) => localStorage.removeItem(k)) // unsaved resume drafts
+  } catch { /* nothing stored */ }
 }
+// Unsaved resume edits are kept on the device under this prefix + candidate id (see ResumeEditor).
+export const DRAFT = 'slot-profile:resume-draft:'
 
-const toRow = (d) => ({ id: d.id, ...d.data() })
+// Every record entering the app (server, local copy, single fetch) gets its name in title case, so every screen shows it so.
+function named(r) { return r && { ...r, name: titleCase(r.name) } }
+const toRow = (d) => named({ id: d.id, ...d.data() })
 const newest = (rows, since) => rows.reduce((m, r) => (r.updatedAt && (!m || r.updatedAt.valueOf() > m.valueOf()) ? r.updatedAt : m), since)
 
 async function full() {
@@ -95,20 +108,21 @@ export function useCandidates() {
   return { ...s, refresh: () => sync().catch(() => {}) }
 }
 
-export const getCandidate = (id) => withTimeout(getDoc(doc(candidates, id))).then((d) => (d.exists() ? d.data() : null))
+export const getCandidate = (id) => withTimeout(getDoc(doc(candidates, id))).then((d) => (d.exists() ? named(d.data()) : null))
 
 // Another saved candidate with this phone, or null. Checked in the synced copy (no read); queried only without one.
 export async function findByPhone(phone, exceptId) {
   if (cache && firstDone) return cache.find((r) => r.phone === phone && r.id !== exceptId) ?? null
   const snap = await withTimeout(getDocs(query(candidates, where('phone', '==', phone))))
   const other = snap.docs.find((d) => d.id !== exceptId)
-  return other ? { id: other.id, ...other.data() } : null
+  return other ? named({ id: other.id, ...other.data() }) : null
 }
 
 // Saves the form. Only form fields are written: the list's `id` and the timestamps are never copied into the record.
 // merge keeps createdAt. Resolves the record's id.
 export async function saveCandidate(id, form) {
-  const { id: _id, createdAt: _c, updatedAt: _u, ...data } = form
+  const { id: _id, createdAt: _c, updatedAt: _u, ...rest } = form
+  const data = { ...rest, name: titleCase(rest.name) }
   const now = Timestamp.now()
   if (id) {
     await withTimeout(setDoc(doc(candidates, id), { ...data, updatedAt: serverTimestamp() }, { merge: true }))
@@ -126,10 +140,14 @@ export async function saveCandidate(id, form) {
 // Resolves true if deleted.
 export async function removeCandidate(id, name) {
   if (!(await confirmAsk({ title: `Delete ${name || 'this candidate'}?`, message: 'The record is removed for good. You can undo for a few seconds after.', ok: 'Delete', danger: true }))) return false
-  let row
+  let row, resume
   try {
     row = cached(id) ?? { ...(await getCandidate(id)), id } // kept for Undo
-    await withTimeout(deleteDoc(doc(candidates, id)))
+    resume = row.hasResume ? await getResume(id) : null
+    const batch = writeBatch(db)
+    batch.delete(doc(candidates, id))
+    batch.delete(doc(resumes, id)) // also when hasResume is missing: deleting nothing is fine
+    await withTimeout(batch.commit())
   } catch (err) {
     toast('Could not delete: ' + err.message, { tone: 'error' })
     return false
@@ -141,7 +159,10 @@ export async function removeCandidate(id, name) {
       run: async () => {
         const { id: _id, ...data } = row
         try {
-          await withTimeout(setDoc(doc(candidates, id), { ...data, createdAt: data.createdAt ?? serverTimestamp(), updatedAt: serverTimestamp() }))
+          const batch = writeBatch(db)
+          batch.set(doc(candidates, id), { ...data, createdAt: data.createdAt ?? serverTimestamp(), updatedAt: serverTimestamp() })
+          if (resume) batch.set(doc(resumes, id), { ...resume, updatedAt: serverTimestamp() })
+          await withTimeout(batch.commit())
           if (cache) publish(mergeRows(cache, [{ ...row, updatedAt: Timestamp.now() }]))
           toast(`${name || 'Candidate'} restored.`)
         } catch (err) {
@@ -151,6 +172,19 @@ export async function removeCandidate(id, name) {
     },
   })
   return true
+}
+
+export const getResume = (id) => withTimeout(getDoc(doc(resumes, id))).then((d) => (d.exists() ? d.data() : null))
+
+// Saves a candidate's resume and, in the same write, stamps the candidate (hasResume, resumeAt) so lists show
+// the resume status and when it was last saved without reading any resume.
+export async function saveResume(id, resume) {
+  const { updatedAt: _u, ...data } = resume
+  const batch = writeBatch(db)
+  batch.set(doc(resumes, id), { ...data, updatedAt: serverTimestamp() })
+  batch.set(doc(candidates, id), { hasResume: true, resumeAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true })
+  await withTimeout(batch.commit())
+  if (cache) publish(cache.map((r) => (r.id === id ? { ...r, hasResume: true, resumeAt: Timestamp.now() } : r)))
 }
 
 // Phase button in the list: the pill changes at once, and the phase is written once clicks stop for a moment, so

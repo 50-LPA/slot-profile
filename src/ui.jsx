@@ -5,7 +5,7 @@ import { ICONS, Icon } from './icons.jsx'
 // Page body under the header: padding + breadcrumbs. crumbs: [label, href?][]; the last one is the current page.
 export function Page({ crumbs, children }) {
   return (
-    <main className="px-4 py-4 font-lato sm:px-6 sm:py-5">
+    <main className="px-4 py-4 font-lato sm:px-6 sm:py-5 print:p-0">
       <Breadcrumbs items={crumbs} />
       {children}
     </main>
@@ -14,12 +14,12 @@ export function Page({ crumbs, children }) {
 
 function Breadcrumbs({ items }) {
   return (
-    <nav aria-label="Breadcrumb" className="mb-3 flex flex-wrap items-center gap-1 text-xs text-gray-500">
-      <a href="#/" className="flex items-center gap-1 hover:text-purple-600"><Icon d={ICONS.home} className="h-3.5 w-3.5" /> Home</a>
+    <nav aria-label="Breadcrumb" className="mb-3 print:hidden flex flex-wrap items-center gap-1 text-xs text-gray-500">
+      <a href="#/" className="flex items-center gap-1 hover:text-brand-600"><Icon d={ICONS.home} className="h-3.5 w-3.5" /> Home</a>
       {items.map(([label, href], i) => (
         <span key={i} className="flex items-center gap-1">
           <Icon d={ICONS.chevron} className="h-3 w-3 text-gray-400" />
-          {href ? <a href={href} className="hover:text-purple-600">{label}</a> : <span aria-current="page" className="font-bold text-gray-800">{label}</span>}
+          {href ? <a href={href} className="hover:text-brand-600">{label}</a> : <span aria-current="page" className="font-bold text-gray-800">{label}</span>}
         </span>
       ))}
     </nav>
@@ -41,7 +41,7 @@ export function CardHeader({ onBack, backLabel = 'Go back', title, extra, action
     <div className="grid grid-cols-[auto_1fr] items-center gap-2 lg:grid-cols-[1fr_auto_1fr]">
       <div><CircleButton icon={ICONS.back} label={backLabel} onClick={onBack} /></div>
       <div className="flex items-center justify-center gap-2">
-        <h1 className="text-center text-base font-bold text-purple-600">{title}</h1>
+        <h1 className="text-center text-base font-bold text-brand-600">{title}</h1>
         {extra}
       </div>
       <div className="col-span-2 flex flex-wrap items-center justify-end gap-2 lg:col-span-1">{actions}</div>
@@ -77,7 +77,7 @@ export function CircleButton({ icon, label, dim, ...rest }) {
   )
 }
 
-const ACTION = { sky: 'bg-sky-500', amber: 'bg-amber-400', red: 'bg-red-500' }
+const ACTION = { sky: 'bg-sky-500', amber: 'bg-amber-400', red: 'bg-red-500', purple: 'bg-brand-500' }
 // Small square coloured badge with a white icon (table actions).
 export function IconAction({ icon, label, tone, onClick }) {
   return (
@@ -90,7 +90,7 @@ export function IconAction({ icon, label, tone, onClick }) {
 
 // Segmented toggle. options: [value, label][]. activeClass(value) colours the selected segment.
 // On phones the segments share the width equally.
-export function Segmented({ label, options, value, onChange, disabled, className = '', activeClass = () => 'bg-purple-600 text-white', border = 'border-purple-500', idle = 'text-purple-600 enabled:hover:bg-purple-50' }) {
+export function Segmented({ label, options, value, onChange, disabled, className = '', activeClass = () => 'bg-brand-600 text-white', border = 'border-brand-500', idle = 'text-brand-600 enabled:hover:bg-brand-50' }) {
   return (
     <div role="group" aria-label={label} className={`flex h-8 overflow-hidden rounded-full border text-[13px] font-bold ${border} ${className}`}>
       {options.map(([v, text]) => (
@@ -109,14 +109,14 @@ const PILL = {
   gray: 'bg-gray-500 text-white',
   amber: 'bg-amber-400 text-white',
   sky: 'bg-sky-500 text-white',
-  purple: 'bg-purple-100 text-purple-600',
+  purple: 'bg-brand-100 text-brand-600',
 }
 // Small rounded status label. tone: green | red | gray | amber | sky | purple.
 export function Pill({ tone, children }) {
   return <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${PILL[tone]}`}>{children}</span>
 }
 
-const FIELD = 'h-8 rounded-full border border-gray-200 bg-white px-3 text-[13px] text-gray-800 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100'
+const FIELD = 'h-8 rounded-full border border-gray-200 bg-white px-3 text-[13px] text-gray-800 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100'
 // Rounded filter dropdown. placeholder = the "All …" option (value '').
 export function FilterSelect({ value, onChange, label, placeholder, options, className = '' }) {
   return (
@@ -176,12 +176,12 @@ export function SearchSelect({ value, onChange, label, placeholder, options, cla
           <div className="relative border-b border-gray-100 p-1.5">
             <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-gray-400"><Icon d={ICONS.search} className="h-3.5 w-3.5" /></span>
             <input autoFocus value={q} onChange={(e) => { setQ(e.target.value); setHi(0) }} onKeyDown={key} placeholder="Search…" aria-label={`Search ${label}`}
-              className="h-8 w-full rounded-lg bg-gray-50 pl-8 pr-2 text-[13px] outline-none focus:bg-white focus:ring-2 focus:ring-purple-100" />
+              className="h-8 w-full rounded-lg bg-gray-50 pl-8 pr-2 text-[13px] outline-none focus:bg-white focus:ring-2 focus:ring-brand-100" />
           </div>
           <ul ref={list} role="listbox" aria-label={label} className="max-h-60 overflow-y-auto py-1 text-[13px]">
             {items.map(([v, text], i) => (
               <li key={v || '__all'} role="option" aria-selected={value === v} onMouseEnter={() => setHi(i)} onMouseDown={(e) => { e.preventDefault(); pick(v) }}
-                className={`flex cursor-pointer items-center justify-between px-3 py-1.5 ${i === hi ? 'bg-purple-50' : ''} ${value === v ? 'font-bold text-purple-600' : 'text-gray-800'} ${v ? '' : 'border-b border-gray-100'}`}>
+                className={`flex cursor-pointer items-center justify-between px-3 py-1.5 ${i === hi ? 'bg-brand-50' : ''} ${value === v ? 'font-bold text-brand-600' : 'text-gray-800'} ${v ? '' : 'border-b border-gray-100'}`}>
                 <span className="truncate">{text}</span>
                 {value === v && <Icon d={ICONS.check} className="h-3.5 w-3.5 flex-none" />}
               </li>

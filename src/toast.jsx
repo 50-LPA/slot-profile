@@ -56,7 +56,7 @@ export function Toaster() {
           </div>
         </dialog>
       )}
-      <div aria-live="polite" className="fixed inset-x-4 bottom-4 z-50 flex flex-col items-center gap-2 font-lato sm:inset-x-auto sm:right-5 sm:items-end">
+      <div aria-live="polite" className="print:hidden fixed inset-x-4 bottom-4 z-50 flex flex-col items-center gap-2 font-lato sm:inset-x-auto sm:right-5 sm:items-end">
         {toasts.map((t) => (
           <div key={t.id} role={t.tone === 'error' ? 'alert' : 'status'}
             className={`flex max-w-md items-center gap-3 rounded-xl px-4 py-2.5 text-sm shadow-lg ${TOAST_TONE[t.tone]}`}>

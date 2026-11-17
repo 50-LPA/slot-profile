@@ -1,7 +1,8 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { applySalary } from './salary.js'
-import { confirmAsk, toast } from './toast.jsx'
-import { ADVANCE_DUE, PHASES, TECH, advance } from './options.js'
+import { toast } from './toast.jsx'
+import { useUnsaved } from './unsaved.js'
+import { ADVANCE_DUE, PHASES, TECH, advance, titleCase } from './options.js'
 import { ICONS, Icon } from './icons.jsx'
 import { Button, Card, CardHeader, Segmented } from './ui.jsx'
 import { CareerFields, CareerTimeline } from './Career.jsx'
@@ -84,7 +85,7 @@ function DateText({ value, onChange, className }) {
       <span className="relative flex-none self-center">
         <button type="button" tabIndex={-1} aria-label="Pick a date" title="Pick a date"
           onClick={() => (picker.current.showPicker ? picker.current.showPicker() : picker.current.click())}
-          className="flex h-[6mm] w-[6mm] items-center justify-center rounded text-gray-400 hover:bg-purple-50 hover:text-purple-600">
+          className="flex h-[6mm] w-[6mm] items-center justify-center rounded text-gray-400 hover:bg-brand-50 hover:text-brand-600">
           <Icon d={ICONS.calendar} className="h-[4mm] w-[4mm]" />
         </button>
         <input ref={picker} type="date" tabIndex={-1} aria-hidden="true" value={toIso(value)}
@@ -113,7 +114,7 @@ function VisitDates({ value, onChange }) {
         </span>
       ))}
       <button type="button" tabIndex={-1} aria-label="Add a visit" title="Add a visit (today)" onClick={() => onChange([...value, today])}
-        className="self-center rounded-full border border-purple-300 px-[1.5mm] text-[8pt] font-normal text-purple-600 hover:bg-purple-50">+ Visit</button>
+        className="self-center rounded-full border border-brand-300 px-[1.5mm] text-[8pt] font-normal text-brand-600 hover:bg-brand-50">+ Visit</button>
     </span>
   )
 }
@@ -243,7 +244,7 @@ function withExperience(form) {
 
 
 // `record` is a saved candidate (or undefined for a new one). `onSave(form)` resolves true when saved.
-export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, onDelete }) {
+export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, onDelete, onResume }) {
   const [f, setF] = useState(() => withExperience({ ...newForm(), ...record }))
   const [saved, setSaved] = useState(f)
   const [saving, setSaving] = useState(false)
@@ -254,13 +255,7 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
   const setCompanies = (companies) => setF((p) => withExperience({ ...p, companies }))
   const toggleTech = (t) => set('tech')(f.tech.includes(t) ? f.tech.filter((x) => x !== t) : [...f.tech, t])
 
-  // Warn before closing / refreshing the tab with unsaved changes.
-  useEffect(() => {
-    if (!dirty) return
-    const warn = (e) => e.preventDefault()
-    window.addEventListener('beforeunload', warn)
-    return () => window.removeEventListener('beforeunload', warn)
-  }, [dirty])
+  useUnsaved(dirty) // leaving the page (tab, link, Back, closing) with unsaved edits asks first
 
   const save = async () => {
     if (!f.name.trim()) return toast('Please enter the candidate name before saving.', { tone: 'error' })
@@ -272,12 +267,20 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
     } finally {
       setSaving(false)
     }
-  }
+  }  // Ctrl/Cmd + S saves.
+  useEffect(() => {
+    const key = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); if (!readOnly && dirty && !saving) save() }
+    }
+    window.addEventListener('keydown', key)
+    return () => window.removeEventListener('keydown', key)
+  })
+
 
   return (
     <Card>
       <CardHeader
-        onBack={async () => (!dirty || await confirmAsk({ title: 'Leave without saving?', message: 'Your changes to this candidate will be lost.', ok: 'Leave', danger: true })) && onBack()}
+        onBack={onBack}
         backLabel="Back to all candidates"
         title={readOnly ? 'View Candidate' : record ? 'Update Candidate' : 'New Candidate'}
         actions={<>
@@ -286,9 +289,10 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
             activeClass={(v) => (v === 'confirmed' ? 'bg-emerald-500' : 'bg-gray-500') + ' text-white'} />
           <span className="px-1 text-xs text-gray-500">{readOnly ? 'View only' : dirty ? '● Unsaved changes' : record ? '✓ Saved' : ''}</span>
           {onDelete && <Button variant="danger" icon={ICONS.trash} onClick={onDelete}>Delete</Button>}
+          {onResume && <Button variant="plain" icon={ICONS.document} onClick={onResume}>Resume</Button>}
           {readOnly
             ? <Button variant="warning" icon={ICONS.pencil} onClick={onEdit}>Update</Button>
-            : <Button icon={ICONS.check} onClick={save} disabled={saving || !dirty}>{saving ? 'Saving…' : 'Save'}</Button>}
+            : <Button icon={ICONS.check} onClick={save} disabled={saving || !dirty} title="Save (Ctrl/Cmd + S)">{saving ? 'Saving…' : 'Save'}</Button>}
         </>}
       />
 
@@ -310,7 +314,7 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
         {/* Candidate details */}
         <section className="grid grid-cols-[102mm_minmax(0,1fr)] gap-y-[4.5mm] text-[11.5pt] mobile:grid-cols-1 mobile:gap-y-5">
           <Field label="CANDIDATE NAME">
-            <Text value={f.name} onChange={set('name')} autoFocus />
+            <Text value={f.name} onChange={set('name')} onBlur={() => set('name')(titleCase(f.name))} autoFocus />
           </Field>
           <Field label="CANDIDATE MOBILE">
             <Phone value={f.phone} onChange={set('phone')} />
@@ -473,8 +477,8 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
               {!readOnly && (
                 <button type="button" onClick={() => setSigning(true)}
                   aria-label={f.signature ? 'Re-sign' : 'Sign here'} title={f.signature ? 'Re-sign' : 'Sign here'}
-                  className="group absolute inset-0 cursor-pointer rounded-sm hover:bg-purple-50/40">
-                  <span className="absolute right-0 bottom-[1mm] flex h-[6mm] w-[6mm] items-center justify-center rounded-full border border-purple-300 bg-white text-purple-600 shadow-sm group-hover:bg-purple-50">
+                  className="group absolute inset-0 cursor-pointer rounded-sm hover:bg-brand-50/40">
+                  <span className="absolute right-0 bottom-[1mm] flex h-[6mm] w-[6mm] items-center justify-center rounded-full border border-brand-300 bg-white text-brand-600 shadow-sm group-hover:bg-brand-50">
                     <Icon d={ICONS.signature} className="h-[3.5mm] w-[3.5mm]" />
                   </span>
                 </button>

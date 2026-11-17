@@ -3,7 +3,7 @@ import { ICONS, Icon } from './icons.jsx'
 import { Button } from './ui.jsx'
 
 const COLORS = [
-  'border-purple-400 bg-purple-50 text-purple-900',
+  'border-brand-400 bg-brand-50 text-brand-900',
   'border-sky-400 bg-sky-50 text-sky-900',
   'border-emerald-400 bg-emerald-50 text-emerald-900',
   'border-amber-400 bg-amber-50 text-amber-900',
@@ -36,7 +36,7 @@ export function CareerTimeline({ passOut, companies }) {
     <div className="flex h-[40mm] shrink-0 flex-col mobile:h-auto">
       <div className="flex flex-wrap items-center gap-[1.5mm]">
         <b className="mr-[1mm] text-[9pt]">CAREER TIMELINE</b>
-        {t.passOut && <Chip className="border-purple-300 bg-purple-50 text-purple-800">🎓 Pass-out <b>{t.passOut.label}</b></Chip>}
+        {t.passOut && <Chip className="border-brand-300 bg-brand-50 text-brand-800">🎓 Pass-out <b>{t.passOut.label}</b></Chip>}
         {exp !== null && <Chip>Experience <b>{span(exp)}</b> · {t.jobs.length} {t.jobs.length === 1 ? 'company' : 'companies'}</Chip>}
         {current && <Chip className="border-emerald-300 bg-emerald-50 text-emerald-800">Now at <b>{current.name || 'Company'}</b></Chip>}
         {gapTotal > 0
@@ -47,7 +47,7 @@ export function CareerTimeline({ passOut, companies }) {
       {/* track: top margin leaves room for narrow-gap callouts; edge labels hang into the sheet padding */}
       <div className="relative mt-[7mm] h-[20mm] shrink-0">
         {t.passOut && (
-          <div className="absolute top-0 h-[14mm] -translate-x-1/2 border-l-[0.4mm] border-dashed border-purple-500" style={{ left: `${t.passOut.left}%` }} />
+          <div className="absolute top-0 h-[14mm] -translate-x-1/2 border-l-[0.4mm] border-dashed border-brand-500" style={{ left: `${t.passOut.left}%` }} />
         )}
         {t.gaps.map((g) => {
           const dates = gapDates(g, short)
@@ -96,7 +96,7 @@ export function CareerTimeline({ passOut, companies }) {
           </div>
         ))}
         {t.passOut && (
-          <div title={`Pass-out · ${t.passOut.label}`} className="absolute top-[13.25mm] z-10 h-[4mm] w-[4mm] -translate-x-1/2 rounded-full border-[0.8mm] border-white bg-purple-600 shadow-[0_0_0_0.5mm_theme(colors.purple.600),0_0_0_1.2mm_theme(colors.purple.200)]" style={{ left: `${t.passOut.left}%` }} />
+          <div title={`Pass-out · ${t.passOut.label}`} className="absolute top-[13.25mm] z-10 h-[4mm] w-[4mm] -translate-x-1/2 rounded-full border-[0.8mm] border-white bg-brand-600 shadow-[0_0_0_0.5mm_theme(colors.purple.600),0_0_0_1.2mm_theme(colors.purple.200)]" style={{ left: `${t.passOut.left}%` }} />
         )}
       </div>
 
@@ -114,7 +114,7 @@ export function CareerTimeline({ passOut, companies }) {
   )
 }
 
-const input = 'h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-[13px] text-gray-800 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 disabled:bg-gray-50 disabled:text-gray-400'
+const input = 'h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-[13px] text-gray-800 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 disabled:bg-gray-50 disabled:text-gray-400'
 // Narrow: "# name ×" then "joining exit present" below. Wide (@xl): # · name · joining · exit · present · ×.
 const row = 'grid grid-cols-[20px_minmax(0,1fr)_minmax(0,1fr)_24px] items-center gap-1.5 @xl:grid-cols-[20px_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_44px_24px]'
 
@@ -171,7 +171,7 @@ export function CareerFields({ passOut, companies, onPassOut, onCompanies }) {
               const badExit = !c.present && toIdx(c.to) !== null && toIdx(c.from) !== null && toIdx(c.to) < toIdx(c.from)
               return (
                 <div key={i} className={`${row} border-b border-gray-100 py-2 ${badExit ? 'bg-red-50' : ''}`}>
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-purple-100 text-[11px] font-bold text-purple-600">{i + 1}</span>
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-[11px] font-bold text-brand-600">{i + 1}</span>
                   <input value={c.name} onChange={(e) => update(i, { name: e.target.value })} placeholder="Company name" aria-label={`Company ${i + 1} name`} className={`${input} col-span-2 @xl:col-span-1`} />
                   <span className="col-span-2 col-start-1 row-start-2 @xl:col-span-1 @xl:col-auto @xl:row-auto">
                     <span className="mb-0.5 block text-[11px] font-bold text-gray-500 @xl:hidden">Joining</span>
@@ -182,7 +182,7 @@ export function CareerFields({ passOut, companies, onPassOut, onCompanies }) {
                     <MonthYear value={c.to} onChange={(v) => update(i, { to: v })} label={`Company ${i + 1} exit`} disabled={c.present} invalid={badExit} />
                   </span>
                   <label className="col-span-3 col-start-2 row-start-3 @xl:col-span-1 @xl:col-auto @xl:row-auto flex items-center gap-1 @xl:justify-center text-[11px] text-gray-600" title="Currently working here">
-                    <input type="radio" name="present-company" checked={!!c.present} onChange={() => {}} onClick={() => setPresent(i)} className="accent-purple-600" />
+                    <input type="radio" name="present-company" checked={!!c.present} onChange={() => {}} onClick={() => setPresent(i)} className="accent-brand-600" />
                     <span className="@xl:hidden">Currently working here (Present)</span>
                   </label>
                   <button type="button" aria-label={`Remove company ${i + 1}`} title="Remove"

@@ -5,18 +5,18 @@ import { ADVANCE_DUE, PHASE_TONE, phaseLabel } from './options.js'
 import { stats } from './list.js'
 
 const rupees = (n) => '₹ ' + n.toLocaleString('en-IN')
-const DOT = { gray: 'bg-gray-400', sky: 'bg-sky-500', green: 'bg-emerald-500', amber: 'bg-amber-400', red: 'bg-red-500', purple: 'bg-purple-500' }
+const DOT = { gray: 'bg-gray-400', sky: 'bg-sky-500', green: 'bg-emerald-500', amber: 'bg-amber-400', red: 'bg-red-500', purple: 'bg-brand-500' }
 
 function Tile({ label, value, note, tone = 'purple', href }) {
   return (
-    <a href={href} className="group rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-purple-300">
+    <a href={href} className="group rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-brand-300">
       <p className="flex items-center gap-1.5 text-xs font-bold text-gray-500">
         <span className={`h-2 w-2 rounded-full ${DOT[tone]}`} /> {label}
       </p>
       <p className="mt-1.5 text-2xl font-bold leading-none text-gray-900">{value}</p>
       <p className="mt-1.5 flex items-center justify-between text-xs text-gray-400">
         <span>{note}</span>
-        <Icon d={ICONS.chevron} className="h-3.5 w-3.5 text-gray-300 group-hover:text-purple-500" />
+        <Icon d={ICONS.chevron} className="h-3.5 w-3.5 text-gray-300 group-hover:text-brand-500" />
       </p>
     </a>
   )
@@ -44,10 +44,11 @@ export default function Dashboard({ rows, error, refreshing, refresh }) {
       </div>
 
       <Section title="Candidates">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Tile label="Total" value={s.total} note={`${s.visits} visited this month`} href={`${L}?phase=all`} />
           <Tile label="Inquiry" value={s.byPhase.inquiry} note={pct(s.byPhase.inquiry)} tone="gray" href={`${L}?phase=inquiry`} />
           <Tile label="Confirmed" value={s.byPhase.confirmed} note={pct(s.byPhase.confirmed)} tone="green" href={`${L}?phase=confirmed`} />
+          <Tile label="Resumes ready" value={`${s.resumes} / ${s.total}`} note={`${s.total - s.resumes} not started`} tone="sky" href="#/resumes" />
         </div>
       </Section>
 
@@ -67,10 +68,10 @@ export default function Dashboard({ rows, error, refreshing, refresh }) {
             <ul className="space-y-2.5">
               {s.topTech.map(([t, n]) => (
                 <li key={t}>
-                  <a href={`${L}?tech=${encodeURIComponent(t)}`} className="block text-[13px] hover:text-purple-600">
+                  <a href={`${L}?tech=${encodeURIComponent(t)}`} className="block text-[13px] hover:text-brand-600">
                     <span className="flex justify-between"><span>{t}</span><b>{n}</b></span>
                     <span className="mt-1 block h-1.5 rounded-full bg-gray-100">
-                      <span className="block h-full rounded-full bg-purple-400" style={{ width: `${(n / s.topTech[0][1]) * 100}%` }} />
+                      <span className="block h-full rounded-full bg-brand-400" style={{ width: `${(n / s.topTech[0][1]) * 100}%` }} />
                     </span>
                   </a>
                 </li>
@@ -85,7 +86,7 @@ export default function Dashboard({ rows, error, refreshing, refresh }) {
             <ul className="divide-y divide-gray-100">
               {s.recent.map((r) => (
                 <li key={r.id}>
-                  <a href={`#/c/${r.id}/view`} className="flex items-center justify-between gap-2 px-4 py-2.5 text-[13px] hover:bg-purple-50/40">
+                  <a href={`#/c/${r.id}/view`} className="flex items-center justify-between gap-2 px-4 py-2.5 text-[13px] hover:bg-brand-50/40">
                     <span className="min-w-0">
                       <span className="block truncate font-bold text-gray-800">{r.name || '-'}</span>
                       <span className="block text-xs text-gray-400">{r.phone || 'No phone'}</span>
@@ -95,7 +96,7 @@ export default function Dashboard({ rows, error, refreshing, refresh }) {
                 </li>
               ))}
             </ul>
-            <a href={`${L}?phase=all`} className="block border-t border-gray-100 px-4 py-2 text-center text-xs font-bold text-purple-600 hover:bg-purple-50/40">All candidates →</a>
+            <a href={`${L}?phase=all`} className="block border-t border-gray-100 px-4 py-2 text-center text-xs font-bold text-brand-600 hover:bg-brand-50/40">All candidates →</a>
           </div>
         </Section>
       </div>

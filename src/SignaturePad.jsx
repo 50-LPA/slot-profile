@@ -84,7 +84,7 @@ export default function SignaturePad({ onSave, onClose }) {
         className={`flex flex-col bg-white shadow-2xl ${rot ? 'fixed left-0 top-0 p-3' : full ? 'fixed inset-0 p-4 sm:p-6' : 'w-full max-w-3xl rounded-2xl p-5'}`}
         style={rot ? { width: '100dvh', height: '100dvw', transformOrigin: 'top left', transform: 'rotate(90deg) translateY(-100%)' } : undefined}>
         <div className="flex items-center gap-2">
-          <h2 className="text-base font-bold text-purple-600">Candidate Signature</h2>
+          <h2 className="text-base font-bold text-brand-600">Candidate Signature</h2>
           <button type="button" onClick={toggleRot} className={`${btn} ml-auto border border-gray-200 text-gray-700 hover:bg-gray-50 sm:hidden`}>
             <Icon d={ICONS.refresh} className="h-4 w-4" /> {rot ? 'Unrotate' : 'Rotate'}
           </button>

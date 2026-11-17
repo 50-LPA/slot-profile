@@ -95,7 +95,7 @@ export function stats(rows, now = new Date()) {
     if (visitsOf(r).some((d) => Math.floor((visitNum(d) ?? 0) / 100) === thisMonth)) visits++
   }
   return {
-    total: rows.length, byPhase, advance: adv, visits,
+    total: rows.length, byPhase, advance: adv, visits, resumes: rows.filter((r) => r.hasResume).length,
     topTech: Object.entries(tech).filter(([, n]) => n).sort((a, b) => b[1] - a[1]).slice(0, 6),
     recent: sortRows(rows, 'updated', 'desc').slice(0, 5),
   }

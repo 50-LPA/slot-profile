@@ -67,3 +67,7 @@ test('sync merge: changed rows replace cached ones, new ones join, newest first'
   assert.equal(merged[0].name, 'new')
   assert.equal(mergeRows(cache, []).length, 2)
 })
+
+test('stats count resumes', () => {
+  assert.equal(stats([{ phase: 'inquiry', hasResume: true, visitDates: [] }, { phase: 'confirmed', visitDates: [] }]).resumes, 1)
+})
