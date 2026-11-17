@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "test": "node --test",
+    "preview": "vite preview",
+    "deploy": "npm test && npm run build && firebase deploy --only firestore:rules && netlify deploy --prod --dir=dist"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
