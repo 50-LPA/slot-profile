@@ -21,12 +21,30 @@ service cloud.firestore {
         && (!('phase' in d) || d.phase in ['inquiry', 'confirmed'])
         && (!('tech' in d) || (d.tech is list && d.tech.size() <= 20))
         && (!('companies' in d) || (d.companies is list && d.companies.size() <= 50))
+        && (!('hasResume' in d) || d.hasResume is bool) && (!('resumeAt' in d) || d.resumeAt is timestamp)
         && text(d, 'signature', 400000); // drawn signature (PNG data URL), kept small by the app
+    }
+
+    // Optional list of at most n entries.
+    function maxList(d, key, n) {
+      return !(key in d) || (d[key] is list && d[key].size() <= n);
+    }
+
+    function validResume(d) {
+      return d.keys().size() <= 40 && text(d, 'name', 200) && text(d, 'phone', 20) && text(d, 'email', 200)
+        && maxList(d, 'summary', 30) && maxList(d, 'achievements', 30) && maxList(d, 'skills', 60)
+        && maxList(d, 'experience', 30) && maxList(d, 'projects', 30) && maxList(d, 'education', 20);
     }
 
     match /candidates/{id} {
       allow read, delete: if isAdmin();
       allow create, update: if isAdmin() && validCandidate(request.resource.data);
+    }
+
+    // Resume of the candidate with the same id.
+    match /resumes/{id} {
+      allow read, delete: if isAdmin();
+      allow create, update: if isAdmin() && validResume(request.resource.data);
     }
   }
 }
