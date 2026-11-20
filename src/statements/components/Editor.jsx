@@ -10,9 +10,10 @@ import PdfPreview from './PdfPreview.jsx';
 import SummaryBar from './SummaryBar.jsx';
 import TransactionManager from './TransactionManager.jsx';
 import TransactionSeeder from './TransactionSeeder.jsx';
+import { Button, Card, CardHeader } from '../../ui.jsx';
 
-// Layout: every input in one scrolling column on the left, the A4 preview on the right (stacked on small screens).
-export default function Editor({ statement, onChange, savedAt, persistent }) {
+// Layout: responsive two-column grid inside Card. Left side scrolls naturally, right side PDF preview sticks to top.
+export default function Editor({ statement, onChange, savedAt, persistent, onBack }) {
   const computed = useMemo(() => compute(statement), [statement]);
   const errors = useMemo(() => validateAccount(statement.account), [statement.account]);
   const errorCount = Object.keys(errors).length;
@@ -122,87 +123,89 @@ export default function Editor({ statement, onChange, savedAt, persistent }) {
   const outCount = computed.outOfPeriodIds.size;
   const badCount = computed.invalidIds.size;
   const saveText = persistent
-    ? savedAt ? `Saved in this browser · ${savedAt.toLocaleTimeString()}` : 'Everything saves in this browser automatically.'
-    : 'Browser storage is blocked — use “Save as file” to keep your work.';
+    ? savedAt ? `Saved in this browser · ${savedAt.toLocaleTimeString()}` : 'Everything saves automatically.'
+    : 'Browser storage blocked — use “Save as file”.';
 
   return (
-    <div className="app">
-      <div className="editor">
-        <header className="editor-head">
-          <a href="#/statements" className="back">← All statements</a>
-          <h1>{statementTitle(statement)}</h1>
-          <p className="hint">
-            {a.periodStart && a.periodEnd ? `${fmtLongDate(a.periodStart)} – ${fmtLongDate(a.periodEnd)} · ` : ''}
-            {saveText}
-          </p>
-        </header>
-
-        <SummaryBar computed={computed} currency={a.currency} />
-
-        {notice && !(notice.fields && errorCount === 0) && (
-          <div className={`alert ${notice.tone}`} role="status">
-            <div className="alert-row">
-              <span>{notice.text}</span>
-              <button type="button" className="link" onClick={() => setNotice(null)}>Dismiss</button>
-            </div>
+    <Card>
+      <CardHeader
+        onBack={onBack || (() => (window.location.hash = '#/statements'))}
+        title={statementTitle(statement)}
+        extra={<span className="text-xs text-gray-500 font-normal">{saveText}</span>}
+        actions={
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Button size="sm" variant="plain" onClick={loadDemo}>Load demo</Button>
+            <Button size="sm" variant="plain" onClick={() => fileRef.current?.click()}>Load .json</Button>
+            <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={e => openJsonFile(e.target.files[0])} />
+            <Button size="sm" variant="plain" onClick={saveFile}>Save .json</Button>
+            <Button size="sm" variant="danger" onClick={resetForm}>Reset</Button>
           </div>
-        )}
-        {(errorCount > 0 && showAllErrors) || outCount || badCount || computed.negativeCount ? (
-          <ul className="warnings">
-            {errorCount > 0 && showAllErrors && <li className="danger">{errorCount} account field{errorCount > 1 ? 's need' : ' needs'} attention. PDF download is blocked until fixed.</li>}
-            {outCount > 0 && <li>{outCount} transaction{outCount > 1 ? 's are' : ' is'} dated outside the statement period and not shown on the statement.</li>}
-            {badCount > 0 && <li className="danger">{badCount} transaction{badCount > 1 ? 's are' : ' is'} invalid and left out. Edit to fix.</li>}
-            {computed.negativeCount > 0 && <li>The running balance goes below zero on {computed.negativeCount} transaction{computed.negativeCount > 1 ? 's' : ''}.</li>}
-          </ul>
-        ) : null}
+        }
+      />
 
-        <AccountForm account={a} errors={errors} showAllErrors={showAllErrors} onChange={setAccount} />
-        <TransactionSeeder account={a} transactions={statement.transactions} onSeed={handleSeedReplace} onAppend={handleSeedAppend} />
-        <TransactionManager statement={statement} onTransactions={setTransactions} onAccount={setAccount} onUpdateStatement={updateStatement} />
+      <div className="mt-4 grid items-start gap-6 lg:grid-cols-[minmax(400px,480px)_minmax(0,1fr)] xl:grid-cols-[minmax(440px,500px)_minmax(0,1fr)]">
+        {/* Left Column: Form Editor */}
+        <div className="editor space-y-4 min-w-0">
+          <SummaryBar computed={computed} currency={a.currency} />
 
-        <div className="editor-foot">
-          <button type="button" className="btn" onClick={loadDemo}>Load demo data</button>
-          <button type="button" className="btn" onClick={() => fileRef.current?.click()}>Load from .json file</button>
-          <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={e => openJsonFile(e.target.files[0])} />
-          <button type="button" className="btn" onClick={saveFile}>Save as file (.json)</button>
-          <button type="button" className="btn ghost danger" onClick={resetForm}>Reset form</button>
+          {notice && !(notice.fields && errorCount === 0) && (
+            <div className={`alert ${notice.tone}`} role="status">
+              <div className="alert-row">
+                <span>{notice.text}</span>
+                <button type="button" className="link" onClick={() => setNotice(null)}>Dismiss</button>
+              </div>
+            </div>
+          )}
+          {(errorCount > 0 && showAllErrors) || outCount || badCount || computed.negativeCount ? (
+            <ul className="warnings">
+              {errorCount > 0 && showAllErrors && <li className="danger">{errorCount} account field{errorCount > 1 ? 's need' : ' needs'} attention. PDF download is blocked until fixed.</li>}
+              {outCount > 0 && <li>{outCount} transaction{outCount > 1 ? 's are' : ' is'} dated outside the statement period and not shown on the statement.</li>}
+              {badCount > 0 && <li className="danger">{badCount} transaction{badCount > 1 ? 's are' : ' is'} invalid and left out. Edit to fix.</li>}
+              {computed.negativeCount > 0 && <li>The running balance goes below zero on {computed.negativeCount} transaction{computed.negativeCount > 1 ? 's' : ''}.</li>}
+            </ul>
+          ) : null}
+
+          <AccountForm account={a} errors={errors} showAllErrors={showAllErrors} onChange={setAccount} />
+          <TransactionSeeder account={a} transactions={statement.transactions} onSeed={handleSeedReplace} onAppend={handleSeedAppend} />
+          <TransactionManager statement={statement} onTransactions={setTransactions} onAccount={setAccount} onUpdateStatement={updateStatement} />
+        </div>
+
+        {/* Right Column: Sticky Live PDF Preview */}
+        <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl border border-gray-200 bg-gray-50/50 p-3 shadow-inner min-w-0">
+          <PdfPreview
+            statement={statement}
+            actions={
+              <div className="preview-download-bar">
+                <label className="preview-encrypt-check" title="Require password to open the downloaded PDF">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(a.encryptPdf)}
+                    onChange={e => setAccount({ encryptPdf: e.target.checked })}
+                  />
+                  <span>🔒 Protect with password</span>
+                </label>
+
+                {a.encryptPdf ? (
+                  <input
+                    type="text"
+                    className="preview-pass-input"
+                    placeholder="Enter password..."
+                    value={a.pdfPassword || ''}
+                    onChange={e => setAccount({ pdfPassword: e.target.value })}
+                    title="Password required to open the PDF"
+                  />
+                ) : null}
+
+                <Button variant="primary" size="sm" onClick={downloadPdf} disabled={busy}>
+                  {busy
+                    ? (a.encryptPdf ? 'Encrypting…' : 'Generating…')
+                    : (a.encryptPdf ? '🔒 Download Protected PDF' : 'Download PDF')}
+                </Button>
+              </div>
+            }
+          />
         </div>
       </div>
-
-      <div className="preview-pane" aria-label="Live preview">
-        <PdfPreview
-          statement={statement}
-          actions={
-            <div className="preview-download-bar">
-              <label className="preview-encrypt-check" title="Require password to open the downloaded PDF">
-                <input
-                  type="checkbox"
-                  checked={Boolean(a.encryptPdf)}
-                  onChange={e => setAccount({ encryptPdf: e.target.checked })}
-                />
-                <span>🔒 Protect with password</span>
-              </label>
-
-              {a.encryptPdf ? (
-                <input
-                  type="text"
-                  className="preview-pass-input"
-                  placeholder="Enter password..."
-                  value={a.pdfPassword || ''}
-                  onChange={e => setAccount({ pdfPassword: e.target.value })}
-                  title="Password required to open the PDF"
-                />
-              ) : null}
-
-              <button type="button" className="btn primary" onClick={downloadPdf} disabled={busy}>
-                {busy
-                  ? (a.encryptPdf ? 'Encrypting…' : 'Generating…')
-                  : (a.encryptPdf ? '🔒 Download Protected PDF' : 'Download PDF')}
-              </button>
-            </div>
-          }
-        />
-      </div>
-    </div>
+    </Card>
   );
 }

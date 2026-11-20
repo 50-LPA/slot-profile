@@ -6,6 +6,8 @@ import { blankStatement, maskAccount, newId, normalizeStatement, statementTitle 
 import { validateAccount } from '../lib/validate.js';
 import { downloadStatementPdf } from '../pdf/generate.jsx';
 import { go } from '../route.js';
+import { Button, Card, CardHeader } from '../../ui.jsx';
+import { ICONS } from '../../icons.jsx';
 
 export default function Dashboard({ list, onSave, onDelete, persistent }) {
   const [busyId, setBusyId] = useState(null);
@@ -69,72 +71,93 @@ export default function Dashboard({ list, onSave, onDelete, persistent }) {
   }
 
   return (
-    <div className="dash">
-      <header className="dash-head">
-        <div>
-          <h1>Statement Builder</h1>
-          <p className="muted">Account statement generator and live preview.</p>
-        </div>
-        <div className="dash-actions">
-          <button type="button" className="btn primary" onClick={() => create(blankStatement())}>New statement</button>
-          <button type="button" className="btn" onClick={() => create(demoStatement())}>New from demo data</button>
-          <button type="button" className="btn" onClick={() => fileRef.current.click()}>Open .json file</button>
-          <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={e => openFile(e.target.files[0])} />
-        </div>
-      </header>
-
-      {!persistent && <p className="alert warn">Browser storage is blocked, so statements will be lost when this tab closes. Use “Save as file” inside a statement.</p>}
-      {msg && (
-        <div className={`alert ${msg.tone}`} role="status">
-          <div className="alert-row">
-            <span>{msg.text}</span>
-            <button type="button" className="link" onClick={() => setMsg(null)}>Dismiss</button>
+    <Card>
+      <CardHeader
+        onBack={() => (history.length > 1 ? history.back() : (window.location.hash = '#/'))}
+        title="Statement Builder"
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="primary" icon={ICONS.plus} onClick={() => create(blankStatement())}>New statement</Button>
+            <Button size="sm" variant="plain" onClick={() => create(demoStatement())}>New from demo</Button>
+            <Button size="sm" variant="plain" onClick={() => fileRef.current.click()}>Open .json file</Button>
+            <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={e => openFile(e.target.files[0])} />
           </div>
+        }
+      />
+
+      {!persistent && (
+        <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+          Browser storage is blocked, so statements will be lost when this tab closes. Use “Save as file” inside a statement.
+        </p>
+      )}
+
+      {msg && (
+        <div className={`mt-3 flex items-center justify-between rounded-xl p-3 text-xs ${msg.tone === 'danger' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-800'}`} role="status">
+          <span>{msg.text}</span>
+          <button type="button" className="underline font-bold" onClick={() => setMsg(null)}>Dismiss</button>
         </div>
       )}
 
-      <section className="panel" aria-label="Saved statements">
-        <h2 className="group-title">Saved statements <span className="count">{rows.length}</span></h2>
-        {rows.length === 0 ? (
-          <p className="empty">No statements yet. Start a new one, or begin from demo data to see how it works.</p>
-        ) : (
-          <div className="table-wrap">
-            <table className="tx-table dash-table">
-              <thead>
-                <tr>
-                  <th>Account holder</th>
-                  <th>Period</th>
-                  <th className="num">Transactions</th>
-                  <th className="num">Closing balance</th>
-                  <th>Last edited</th>
-                  <th><span className="sr-only">Actions</span></th>
+      <div className="mt-4 flex items-center justify-between border-b border-gray-100 pb-3">
+        <p className="text-xs text-gray-500">
+          <b className="text-sm font-bold text-gray-900">{rows.length}</b> saved statements · stored in this browser
+        </p>
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="my-8 rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-400">
+          No statements yet. Start a new one, or begin from demo data to see how it works.
+        </div>
+      ) : (
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full border-collapse text-left text-[13px] text-gray-800">
+            <thead className="bg-gray-50 border-y border-gray-200 text-xs font-bold text-gray-600">
+              <tr>
+                <th className="px-3.5 py-2.5">Account holder</th>
+                <th className="px-3.5 py-2.5">Period</th>
+                <th className="px-3.5 py-2.5 text-right">Transactions</th>
+                <th className="px-3.5 py-2.5 text-right">Closing balance</th>
+                <th className="px-3.5 py-2.5">Last edited</th>
+                <th className="px-3.5 py-2.5 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {rows.map(({ st, c }) => (
+                <tr key={st.id} className="hover:bg-brand-50/40">
+                  <td className="px-3.5 py-3">
+                    <a href={`#/statements/edit/${encodeURIComponent(st.id)}`} className="font-bold text-brand-600 hover:underline">
+                      {statementTitle(st)}
+                    </a>
+                    <small className="block text-xs text-gray-400">
+                      {[st.account.accountType, maskAccount(st.account.accountNumber)].filter(Boolean).join(' · ')}
+                    </small>
+                  </td>
+                  <td className="px-3.5 py-3 whitespace-nowrap text-xs text-gray-600">
+                    {st.account.periodStart ? `${fmtLongDate(st.account.periodStart)} – ${fmtLongDate(st.account.periodEnd)}` : '—'}
+                  </td>
+                  <td className="px-3.5 py-3 text-right font-mono text-xs text-gray-700">{c.count}</td>
+                  <td className={`px-3.5 py-3 text-right font-mono font-bold text-xs ${c.closing < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                    {st.account.currency} {money(c.closing, st.account.currency)}
+                  </td>
+                  <td className="px-3.5 py-3 whitespace-nowrap text-xs text-gray-500">
+                    {new Date(st.updatedAt).toLocaleString()}
+                  </td>
+                  <td className="px-3.5 py-3 text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button size="sm" variant="primary" onClick={() => go(st.id)}>Open</Button>
+                      <Button size="sm" variant="plain" onClick={() => download(st)} disabled={busyId === st.id}>
+                        {busyId === st.id ? 'PDF…' : 'PDF'}
+                      </Button>
+                      <Button size="sm" variant="plain" onClick={() => duplicate(st)}>Duplicate</Button>
+                      <Button size="sm" variant="danger" onClick={() => remove(st)}>Delete</Button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {rows.map(({ st, c }) => (
-                  <tr key={st.id}>
-                    <td>
-                      <a href={`#/statements/edit/${encodeURIComponent(st.id)}`} className="strong-link">{statementTitle(st)}</a>
-                      <small className="sub">{[st.account.accountType, maskAccount(st.account.accountNumber)].filter(Boolean).join(' · ')}</small>
-                    </td>
-                    <td className="nowrap">{st.account.periodStart ? `${fmtLongDate(st.account.periodStart)} – ${fmtLongDate(st.account.periodEnd)}` : '—'}</td>
-                    <td className="num">{c.count}</td>
-                    <td className={`num ${c.closing < 0 ? 'debit' : ''}`}>{st.account.currency} {money(c.closing, st.account.currency)}</td>
-                    <td className="nowrap">{new Date(st.updatedAt).toLocaleString()}</td>
-                    <td className="row-actions">
-                      <button type="button" className="link" onClick={() => go(st.id)}>Open</button>
-                      <button type="button" className="link" onClick={() => download(st)} disabled={busyId === st.id}>{busyId === st.id ? 'Generating…' : 'PDF'}</button>
-                      <button type="button" className="link" onClick={() => duplicate(st)}>Duplicate</button>
-                      <button type="button" className="link danger" onClick={() => remove(st)}>Delete</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-      <p className="muted small">Statements are stored in this browser only. Use “Save as file” to keep a copy or move it to another device.</p>
-    </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
   );
 }

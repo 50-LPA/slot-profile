@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Dashboard from './components/Dashboard.jsx';
 import Editor from './components/Editor.jsx';
 import { isPersistent, loadAll, saveAll } from './lib/storage.js';
+import { statementTitle } from './lib/model.js';
 import { go, parseHash } from './route.js';
+import { Page } from '../ui.jsx';
 import './styles.css';
 
 export default function App() {
@@ -52,13 +54,19 @@ export default function App() {
     if (route.id && !current) go(null); // unknown or deleted statement
   }, [route.id, current]);
 
+  const crumbs = current
+    ? [['Statements', '#/statements'], [statementTitle(current) || 'Statement']]
+    : [['Statements']];
+
   return (
-    <div className="statement-root">
-      {current ? (
-        <Editor key={current.id} statement={current} onChange={upsert} savedAt={savedAt} persistent={isPersistent()} />
-      ) : (
-        <Dashboard list={list} onSave={upsert} onDelete={remove} persistent={isPersistent()} />
-      )}
-    </div>
+    <Page crumbs={crumbs}>
+      <div className="statement-root">
+        {current ? (
+          <Editor key={current.id} statement={current} onChange={upsert} savedAt={savedAt} persistent={isPersistent()} onBack={() => go(null)} />
+        ) : (
+          <Dashboard list={list} onSave={upsert} onDelete={remove} persistent={isPersistent()} />
+        )}
+      </div>
+    </Page>
   );
 }
