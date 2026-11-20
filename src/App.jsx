@@ -5,6 +5,7 @@ import { auth, loginEmail } from './firebase.js'
 const loadForm = () => import('./ProfileForm.jsx')
 const ProfileForm = lazy(loadForm)
 const ResumeEditor = lazy(() => import('./ResumeEditor.jsx')) // resume builder: own file, loaded on first open
+const StatementsApp = lazy(() => import('./statements/App.jsx')) // bank statement builder: own file
 import { ICONS, Icon } from './icons.jsx'
 import Header from './Header.jsx'
 import CandidateList from './CandidateList.jsx'
@@ -220,7 +221,12 @@ export default function App() {
   if (!user) return <Login />
   const [, id, view] = hash.match(/^#\/c\/([^/]+)(\/view)?/) ?? []
   const [, resumeId] = hash.match(/^#\/r\/([^/?]+)/) ?? []
-  const page = resumeId ? <ResumePage key={hash} id={resumeId} />
+  const page = hash.startsWith('#/statements') ? (
+    <Suspense fallback={<Loading />}>
+      <StatementsApp />
+    </Suspense>
+  )
+    : resumeId ? <ResumePage key={hash} id={resumeId} />
     : id || hash === '#/new' ? <CandidatePage key={hash} id={id} view={!!view} />
     : <ListPages page={hash.startsWith('#/candidates') ? 'candidates' : hash.startsWith('#/resumes') ? 'resumes' : 'home'} />
   return (

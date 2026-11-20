@@ -2,7 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { ICONS, Icon } from './icons.jsx'
 
 // Subheader tabs: add an entry here to add a tab everywhere.
-const TABS = [['Home', '#/', ICONS.home], ['Candidates', '#/candidates', ICONS.users], ['Resumes', '#/resumes', ICONS.document]]
+const TABS = [
+  ['Home', '#/', ICONS.home],
+  ['Candidates', '#/candidates', ICONS.users],
+  ['Resumes', '#/resumes', ICONS.document],
+  ['Statements', '#/statements', ICONS.statement],
+]
 
 // Soft indigo title bar with the profile menu on the far right, then the white subheader (underlined tabs). Shown on every page after login.
 export default function Header({ user, onLogout }) {
@@ -10,9 +15,12 @@ export default function Header({ user, onLogout }) {
   const phone = user.email?.split('@')[0]
   const initials = name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase()
   const [open, setOpen] = useState(false)
-  // App re-renders on hash change. Candidate pages (#/c/…, #/new) belong to the Candidates tab, resume pages (#/r/…) to Resumes.
+  // App re-renders on hash change. Candidate pages (#/c/…, #/new) belong to the Candidates tab, resume pages (#/r/…) to Resumes, statements to Statements.
   const hash = window.location.hash || '#/'
-  const active = hash === '#/' ? '#/' : /^#\/(resumes|r\/)/.test(hash) ? '#/resumes' : '#/candidates'
+  const active = hash === '#/' ? '#/'
+    : /^#\/(resumes|r\/)/.test(hash) ? '#/resumes'
+    : /^#\/statements/.test(hash) ? '#/statements'
+    : '#/candidates'
   const ref = useRef(null)
   useEffect(() => {
     if (!open) return
