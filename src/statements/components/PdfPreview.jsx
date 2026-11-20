@@ -1,7 +1,7 @@
 import * as pdfjs from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { useEffect, useRef, useState } from 'react';
-import { statementBlob } from '../pdf/generate.jsx';
+import { getCachedStatementBlob, hasCachedStatementBlob } from '../pdf/generate.jsx';
 import { Icon, ICONS } from '../../icons.jsx';
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -178,12 +178,15 @@ export default function PdfPreview({ statement, actions = null }) {
     if (!width) return;
     const mine = ++generation.current;
     const stale = () => mine !== generation.current;
-    setState(s => ({ ...s, busy: true }));
+
+    const cached = hasCachedStatementBlob(statement);
+    const delay = cached ? 0 : 350;
+    setState(s => ({ ...s, busy: !cached }));
 
     const timer = setTimeout(async () => {
       let task;
       try {
-        const blob = await statementBlob(statement);
+        const blob = await getCachedStatementBlob(statement);
         if (stale()) return;
 
         task = pdfjs.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) });
@@ -218,7 +221,7 @@ export default function PdfPreview({ statement, actions = null }) {
       } catch (e) {
         if (!stale()) setState({ busy: false, pages: 0, error: e?.message || String(e) });
       }
-    }, 400);
+    }, delay);
 
     return () => clearTimeout(timer);
   }, [statement, width]);

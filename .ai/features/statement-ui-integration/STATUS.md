@@ -28,3 +28,11 @@
   - Upgraded `CardHeader` grid to `lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]` so titles are dead-center and action buttons are pinned right.
   - Aligned action containers with `justify-end` in `Dashboard.jsx` and `Editor.jsx`.
   - Cleaned up unused imports and verified build + 60/60 tests passing cleanly.
+- [x] Step 6: Multi-Tier PDF Compilation Caching (In-Memory + IndexedDB)
+  - Implemented deterministic statement content signature hashing (`getStatementSignature`) in `src/statements/pdf/cache.js`.
+  - Added Tier 1 in-memory LRU cache (`memoryCache`) providing 0ms instant preview loads for unchanged statements.
+  - Added Tier 2 IndexedDB persistent storage (`statement-pdf-cache-v1`) to retain compiled blobs across browser restarts and page refreshes.
+  - Added in-flight promise deduplication to prevent redundant concurrent Web Worker compiles.
+  - Bypassed the 350ms debounce in `PdfPreview.jsx` whenever a cache hit exists (`delay = cached ? 0 : 350`).
+  - Reused cached blobs in `downloadStatementPdf` for instant downloads without secondary compilation.
+  - Created automated test suite `src/statements/statement-cache.test.js` (62/62 tests passing).

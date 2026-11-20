@@ -1,5 +1,6 @@
 import { nowStamp } from '../lib/format.js';
 import { encryptPdfBlob, stripPdfMetadata } from '../lib/encrypt.js';
+import { getCachedStatementBlob as cacheGet, hasCachedStatementBlob, clearStatementCache } from './cache.js';
 import PdfWorker from './pdf.worker.js?worker';
 
 let worker = null;
@@ -74,10 +75,12 @@ export function saveBlob(blob, name) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export { encryptPdfBlob, stripPdfMetadata };
+export { encryptPdfBlob, stripPdfMetadata, hasCachedStatementBlob, clearStatementCache };
+
+export const getCachedStatementBlob = st => cacheGet(st, statementBlob);
 
 export const downloadStatementPdf = async (st, options = {}) => {
-  let blob = await statementBlob(st);
+  let blob = await getCachedStatementBlob(st);
   const shouldEncrypt = options.encrypted !== undefined ? Boolean(options.encrypted) : Boolean(st.account?.encryptPdf);
   const password = options.password !== undefined ? String(options.password) : String(st.account?.pdfPassword || '');
   if (shouldEncrypt && password.trim()) {
