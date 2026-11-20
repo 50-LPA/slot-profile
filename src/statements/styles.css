@@ -26,8 +26,7 @@
 
   * { box-sizing: border-box; }
   h1, h2 { margin: 0; line-height: 1.2; }
-  button, input, select, textarea { font: inherit; color: inherit; }
-  a { color: var(--brand); }
+  a:not([class*='text-']) { color: var(--brand); }
   .muted { color: var(--muted); margin: 2px 0 0; }
   .small { font-size: 12px; }
   .hint { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
