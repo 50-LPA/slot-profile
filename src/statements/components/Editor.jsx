@@ -176,21 +176,21 @@ export default function Editor({ statement, onChange, savedAt, persistent, onBac
             statement={statement}
             actions={
               <div className="flex flex-wrap items-center gap-2">
-                <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-semibold text-gray-700 shadow-2xs transition-colors hover:bg-gray-50 select-none">
+                <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-semibold text-gray-700 shadow-2xs transition-colors hover:bg-gray-50 select-none whitespace-nowrap shrink-0">
                   <input
                     type="checkbox"
                     checked={Boolean(a.encryptPdf)}
                     onChange={e => setAccount({ encryptPdf: e.target.checked })}
-                    className="h-3.5 w-3.5 rounded text-emerald-600 accent-emerald-600 cursor-pointer"
+                    className="h-4 w-4 shrink-0 rounded text-emerald-600 accent-emerald-600 cursor-pointer"
                   />
-                  <Icon d={ICONS.lock} className="h-3.5 w-3.5 text-gray-500" />
+                  <Icon d={ICONS.lock} className="h-3.5 w-3.5 text-gray-500 shrink-0" />
                   <span>Protect with password</span>
                 </label>
 
                 {a.encryptPdf && (
                   <input
                     type="text"
-                    className="h-8 w-36 rounded-lg border border-gray-300 bg-white px-2.5 text-xs font-mono text-gray-800 placeholder-gray-400 shadow-2xs outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                    className="h-8 w-32 sm:w-36 shrink-0 rounded-lg border border-gray-300 bg-white px-2.5 text-xs font-mono text-gray-800 placeholder-gray-400 shadow-2xs outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
                     placeholder="Enter password..."
                     value={a.pdfPassword || ''}
                     onChange={e => setAccount({ pdfPassword: e.target.value })}
@@ -204,6 +204,7 @@ export default function Editor({ statement, onChange, savedAt, persistent, onBac
                   icon={a.encryptPdf ? ICONS.lock : ICONS.document}
                   onClick={downloadPdf}
                   disabled={busy}
+                  className="whitespace-nowrap shrink-0"
                 >
                   {busy
                     ? (a.encryptPdf ? 'Encrypting…' : 'Generating…')
