@@ -149,43 +149,6 @@
   .empty { margin: 4px 0 0; padding: 16px; text-align: center; color: var(--muted); background: var(--surface-2); border-radius: 6px; font-size: 13px; }
 
   /* ---------- preview ---------- */
-  .preview-bar {
-    position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
-    max-width: var(--a4); margin: 0 auto; padding: 6px 0 12px; background: transparent;
-  }
-  .preview-status { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #4b5563; }
-  .preview-actions { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .preview-download-bar {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .preview-encrypt-check {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    font-weight: 500;
-    color: #374151;
-    cursor: pointer;
-    background: var(--surface-2);
-    padding: 4px 8px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-  }
-  .preview-encrypt-check input[type="checkbox"] {
-    width: auto;
-    min-height: auto;
-    cursor: pointer;
-  }
-  .preview-pass-input {
-    min-height: 32px !important;
-    width: 150px !important;
-    padding: 4px 8px !important;
-    font-size: 12px !important;
-    border-radius: 6px !important;
-  }
   .sample-tag {
     padding: 3px 8px; border: 1px solid var(--warn); border-radius: 4px; background: var(--warn-tint);
     color: var(--warn); font-size: 11px; font-weight: 700; letter-spacing: 0.03em;

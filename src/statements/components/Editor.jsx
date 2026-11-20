@@ -10,6 +10,7 @@ import SummaryBar from './SummaryBar.jsx';
 import TransactionManager from './TransactionManager.jsx';
 import TransactionSeeder from './TransactionSeeder.jsx';
 import { Button, Card, CardHeader } from '../../ui.jsx';
+import { Icon, ICONS } from '../../icons.jsx';
 
 // Layout: responsive two-column grid inside Card. Left side scrolls naturally, right side PDF preview sticks to top.
 export default function Editor({ statement, onChange, savedAt, persistent, onBack }) {
@@ -170,35 +171,43 @@ export default function Editor({ statement, onChange, savedAt, persistent, onBac
         </div>
 
         {/* Right Column: Sticky Live PDF Preview */}
-        <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl border border-gray-200 bg-gray-50/50 p-3 shadow-inner min-w-0">
+        <div className="sticky top-4 min-w-0">
           <PdfPreview
             statement={statement}
             actions={
-              <div className="preview-download-bar">
-                <label className="preview-encrypt-check" title="Require password to open the downloaded PDF">
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-semibold text-gray-700 shadow-2xs transition-colors hover:bg-gray-50 select-none">
                   <input
                     type="checkbox"
                     checked={Boolean(a.encryptPdf)}
                     onChange={e => setAccount({ encryptPdf: e.target.checked })}
+                    className="h-3.5 w-3.5 rounded text-emerald-600 accent-emerald-600 cursor-pointer"
                   />
-                  <span>🔒 Protect with password</span>
+                  <Icon d={ICONS.lock} className="h-3.5 w-3.5 text-gray-500" />
+                  <span>Protect with password</span>
                 </label>
 
-                {a.encryptPdf ? (
+                {a.encryptPdf && (
                   <input
                     type="text"
-                    className="preview-pass-input"
+                    className="h-8 w-36 rounded-lg border border-gray-300 bg-white px-2.5 text-xs font-mono text-gray-800 placeholder-gray-400 shadow-2xs outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
                     placeholder="Enter password..."
                     value={a.pdfPassword || ''}
                     onChange={e => setAccount({ pdfPassword: e.target.value })}
                     title="Password required to open the PDF"
                   />
-                ) : null}
+                )}
 
-                <Button variant="primary" size="sm" onClick={downloadPdf} disabled={busy}>
+                <Button
+                  variant="primary"
+                  size="md"
+                  icon={a.encryptPdf ? ICONS.lock : ICONS.document}
+                  onClick={downloadPdf}
+                  disabled={busy}
+                >
                   {busy
                     ? (a.encryptPdf ? 'Encrypting…' : 'Generating…')
-                    : (a.encryptPdf ? '🔒 Download Protected PDF' : 'Download PDF')}
+                    : (a.encryptPdf ? 'Download Protected PDF' : 'Download PDF')}
                 </Button>
               </div>
             }
