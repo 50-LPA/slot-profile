@@ -127,7 +127,7 @@ export default function Editor({ statement, onChange, savedAt, persistent, onBac
     : 'Browser storage blocked — use “Save as file”.';
 
   return (
-    <Card>
+    <Card className="print:border-0 print:p-0 print:shadow-none">
       <CardHeader
         onBack={onBack || (() => (window.location.hash = '#/statements'))}
         title={statementTitle(statement)}

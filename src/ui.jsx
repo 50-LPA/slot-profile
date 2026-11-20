@@ -27,9 +27,9 @@ function Breadcrumbs({ items }) {
 }
 
 // The main white card.
-export function Card({ children }) {
+export function Card({ className = '', children }) {
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+    <section className={`rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 ${className}`}>
       {children}
     </section>
   )

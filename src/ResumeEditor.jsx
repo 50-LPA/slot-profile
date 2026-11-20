@@ -10,7 +10,7 @@ import {
 } from './resume.js'
 import { totalMonths } from './career.js'
 import { titleCase } from './options.js'
-import { Button, CardHeader, CircleButton } from './ui.jsx'
+import { Button, Card, CardHeader, CircleButton } from './ui.jsx'
 import { ICONS, Icon } from './icons.jsx'
 import { ask, confirmAsk, toast } from './toast.jsx'
 import { useUnsaved } from './unsaved.js'
@@ -271,7 +271,7 @@ export default function ResumeEditor({ candidate, resume, onSave, onBack, draftK
   )
 
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 print:border-0 print:p-0 print:shadow-none">
+    <Card className="print:border-0 print:p-0 print:shadow-none">
       <div className="print:hidden">
         <CardHeader
           onBack={onBack}
@@ -432,7 +432,7 @@ export default function ResumeEditor({ candidate, resume, onSave, onBack, draftK
         className="fixed bottom-4 left-4 z-40 flex h-10 items-center gap-1.5 rounded-full bg-gray-900 px-4 text-sm font-bold text-white shadow-lg lg:hidden print:hidden">
         <Icon d={pane === 'edit' ? ICONS.eye : ICONS.pencil} className="h-4 w-4" /> {pane === 'edit' ? 'Preview' : 'Edit'}
       </button>
-    </section>
+    </Card>
   )
 }
 
