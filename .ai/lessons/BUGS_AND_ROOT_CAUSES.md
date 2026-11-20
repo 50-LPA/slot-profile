@@ -57,4 +57,15 @@ This document chronicles real bugs encountered in this codebase, their underlyin
 - **Root Cause**: `styles.css` contained a reset rule `button, input, select, textarea { font: inherit; color: inherit; }`. When nested inside `.statement-root`, it compiled to `.statement-root button { color: inherit; }`. Its specificity `(0, 1, 1)` was higher than Tailwind's `.text-white` `(0, 1, 0)`. The button text inherited the dark body text (`--text: #1f2933`).
 - **Fix**: Removed the redundant `button, input, select, textarea { color: inherit; }` reset. Tailwind's base preflight handles font and color inheritance at base specificity `(0, 0, 1)`, allowing `.text-white` to take precedence.
 
+---
+
+### Bug 8: PDF Preview Toolbar Overlap & Control Misalignment (Transparent Sticky Header Bleed)
+- **Symptoms**: As the user scrolled the PDF preview, PDF page text ("01 Jan 2021 - 31 Oct 2024", "Mahadev", CRN) scrolled directly behind the toolbar, bleeding into the "34 pages · A4", "Protect with password", password input, and "Download Protected PDF" button. The toolbar had raw emojis, mismatched heights (32px input vs 28px button vs 26px checkbox), and cut off the top Kotak/HDFC header banner.
+- **Root Cause**: The preview bar had `position: sticky; top: 0; background: transparent;` inside the same container as the scrollable canvas list. Without a dedicated non-scrolling header with a solid background and border, the canvas rendered directly under the controls.
+- **Fix**:
+  1. Restructured `PdfPreview.jsx` with a non-scrolling, solid white top toolbar (`bg-white border-b border-gray-200 px-3.5 py-2.5`).
+  2. Confined the PDF pages to a dedicated scrollable viewport (`max-h-[calc(100vh-8.5rem)] overflow-y-auto p-4`), completely separating page scrolling from the toolbar.
+  3. Standardized all toolbar controls to `h-8` (32px), using SVG `Icon` components instead of emojis, and styled the password input and page count badge using Tailwind design tokens.
+
+
 
