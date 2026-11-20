@@ -48,6 +48,8 @@ This file is the mandatory entry point for any AI agent working on this reposito
 - **Vite Web Worker Isolation**: Fast Refresh in `vite.config.js` must exclude `/pdf/` files so React DOM runtime is not injected into the Web Worker.
 - **DOM-Measured Resume Pagination**: Resume pagination in `src/ResumeEditor.jsx` must measure actual page content overflow in the DOM; do not guess heights mathematically.
 - **Candidate Firestore Security**: Only the designated admin account is authorized in `firestore.rules`.
+- **Sub-App CSS Isolation & Zero Leaks**: All stylesheets imported by submodules (e.g. `src/statements/styles.css`) must be strictly scoped under their root container (`.statement-root`). Never define unscoped classes matching Tailwind utilities (`.grid`, `.flex`) or compound tag resets (`.root button { color: inherit }`) that overpower Tailwind utility classes like `text-white` or `w-32`.
+- **Symmetrical CardHeader & Action Alignment**: Card headers in `src/ui.jsx` must enforce `lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]` so titles are dead-center and action buttons are pinned right with `justify-end`. Primary buttons must always render emerald green with bold white text.
 
 ---
 

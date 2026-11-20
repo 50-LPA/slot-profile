@@ -14,3 +14,13 @@
    - *Mistake*: `import StatementDocument from '/home/sugat/Downloads/viraj kadam/...'`.
    - *Why it breaks*: Breaks whenever cloned on another machine or path.
    - *Correct*: Always use relative imports (`../app/pdf/StatementDocument.jsx`).
+
+4. **Nesting Tag Resets inside Container Classes in a Tailwind Project**:
+   - *Mistake*: `.statement-root { button { color: inherit; } }`.
+   - *Why it breaks*: Produces compound selector `.statement-root button` with specificity `(0, 1, 1)`, which overrules single-class Tailwind utility classes like `text-white` `(0, 1, 0)`.
+   - *Correct*: Rely on Tailwind's preflight reset `(0, 0, 1)` or use explicit utility classes.
+
+5. **Reusing Generic Class Names that Collide with Tailwind Utilities**:
+   - *Mistake*: Defining `.grid`, `.flex`, `.hidden`, or `.container` in custom module CSS.
+   - *Why it breaks*: Clobbers Tailwind's layout engine across the entire Single Page Application when the stylesheet is injected.
+   - *Correct*: Always prefix custom component styles with domain identifiers (e.g. `.st-form-grid`, `.st-panel`).

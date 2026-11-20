@@ -40,3 +40,21 @@ This document chronicles real bugs encountered in this codebase, their underlyin
   2. Converted `pdf.worker.jsx` to `pdf.worker.js` and added `if (typeof window === 'undefined') self.window = self;` polyfill.
   3. Added `(a.address || '').split('\n')` defensive null-checks in `HdfcStatementDocument.jsx` and `StatementDocument.jsx`.
 
+---
+
+### Bug 6: Global UI Deformation Across SPA Navigation due to Unscoped `.grid` & Tag Selectors
+- **Symptoms**: After visiting the Statements screen, clicking back to Resumes caused the Resume filter controls ("All resumes", "All Phases", "Name or phone...") to stretch 100% width across the card, becoming rectangular boxes with 6px border-radius instead of pill shapes. Additionally, the "Resume Builder" header title was knocked off-center towards 75% width.
+- **Root Cause**: `src/statements/styles.css` was injected into `<head>` upon navigating to `#statements`. The stylesheet had global rules `.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }` and `input:not(...), select, textarea { width: 100%; min-height: 34px; border-radius: 6px; }`. Because of CSS specificity `(0, 2, 1)`, these rules clobbered Tailwind's `.grid` and `.w-full / md:w-36` utilities across the SPA.
+- **Fix**:
+  1. Scoped all selectors in `styles.css` inside `.statement-root`.
+  2. Renamed `.grid` in form markup and CSS to `.st-form-grid`.
+  3. Upgraded `CardHeader` in `src/ui.jsx` to `lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]`.
+
+---
+
+### Bug 7: Dark Gray/Black Text on Emerald Primary Buttons (`.statement-root button` Specificity Overwrite)
+- **Symptoms**: In the Statement dashboard, the primary "+ New statement" button and table "Open" buttons rendered with emerald green backgrounds, but with dark gray/black text instead of crisp white.
+- **Root Cause**: `styles.css` contained a reset rule `button, input, select, textarea { font: inherit; color: inherit; }`. When nested inside `.statement-root`, it compiled to `.statement-root button { color: inherit; }`. Its specificity `(0, 1, 1)` was higher than Tailwind's `.text-white` `(0, 1, 0)`. The button text inherited the dark body text (`--text: #1f2933`).
+- **Fix**: Removed the redundant `button, input, select, textarea { color: inherit; }` reset. Tailwind's base preflight handles font and color inheritance at base specificity `(0, 0, 1)`, allowing `.text-white` to take precedence.
+
+

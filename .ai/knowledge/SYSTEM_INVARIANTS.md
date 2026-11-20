@@ -43,3 +43,13 @@ These rules represent fundamental truths and constraints of this repository. The
 ## 6. Standalone CLI & Browser Dual-Compatibility
 - **Rule**: React-PDF templates must work both inside Vite's browser runtime and inside headless Node.js via `scripts/render_cli.jsx`.
 - **Enforcement**: Any asset URL or font registration must be compatible with both Node's filesystem and Vite's bundle asset graph.
+
+---
+
+## 7. Submodule CSS Scoping & Tailwind Specificity Isolation
+- **Rule**: CSS imported by submodules (such as `src/statements/styles.css`) must never pollute the global SPA document scope or override Tailwind utility classes.
+- **Enforcement**:
+  1. Every selector must be nested inside a root container (e.g., `.statement-root`).
+  2. Never write compound tag resets inside a container class (e.g. `.statement-root button { color: inherit; }`), because compound specificity `(0, 1, 1)` overrides Tailwind utilities (`text-white`, `text-red-600` at `0, 1, 0`). Rely on Tailwind's base preflight reset (`(0, 0, 1)`).
+  3. Never define class names that collide with Tailwind utilities (`.grid`, `.flex`, `.hidden`). Use domain-prefixed classes (e.g., `.st-form-grid`).
+  4. Header layouts must use symmetrical tracks `lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]` with centered titles and `justify-end` actions. Primary buttons must always display white text (`text-white`) on emerald green backgrounds.
