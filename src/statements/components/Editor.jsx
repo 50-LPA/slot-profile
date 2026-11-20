@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { compute } from '../lib/calc.js';
 import { demoStatement } from '../lib/demo.js';
-import { fmtLongDate } from '../lib/format.js';
 import { blankAccount, normalizeStatement, statementTitle } from '../lib/model.js';
 import { validateAccount } from '../lib/validate.js';
 import { downloadStatementPdf, saveBlob } from '../pdf/generate.jsx';
@@ -131,9 +130,9 @@ export default function Editor({ statement, onChange, savedAt, persistent, onBac
       <CardHeader
         onBack={onBack || (() => (window.location.hash = '#/statements'))}
         title={statementTitle(statement)}
-        extra={<span className="text-xs text-gray-500 font-normal">{saveText}</span>}
         actions={
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            <span className="mr-1 text-xs text-gray-500 font-normal">{saveText}</span>
             <Button size="sm" variant="plain" onClick={loadDemo}>Load demo</Button>
             <Button size="sm" variant="plain" onClick={() => fileRef.current?.click()}>Load .json</Button>
             <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={e => openJsonFile(e.target.files[0])} />

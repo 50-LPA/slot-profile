@@ -21,3 +21,10 @@
   - All 60 tests passed (`node --test`).
   - Production build completed cleanly (`vite build`).
   - Zero linter errors (`oxlint`).
+- [x] Step 5: Global CSS Leak Elimination & Header Placement Fix
+  - Identified root cause of global UI deformation: unscoped `.grid` and `input:not(...), select, textarea` in `src/statements/styles.css` leaked across SPA navigation and broke Tailwind's `.grid` and `<FilterSelect>` controls.
+  - Renamed `.grid` in `src/statements/styles.css`, `AccountForm.jsx`, and `TransactionManager.jsx` to `.st-form-grid`.
+  - Scoped all styles and variables in `src/statements/styles.css` strictly under `.statement-root`.
+  - Upgraded `CardHeader` grid to `lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]` so titles are dead-center and action buttons are pinned right.
+  - Aligned action containers with `justify-end` in `Dashboard.jsx` and `Editor.jsx`.
+  - Cleaned up unused imports and verified build + 60/60 tests passing cleanly.

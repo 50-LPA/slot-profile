@@ -73,7 +73,7 @@ export default function AccountForm({ account, errors, showAllErrors, onChange }
       {groups.map(group => (
         <fieldset key={group.title} className="group">
           <legend>{group.title}</legend>
-          <div className="grid">
+          <div className="st-form-grid">
             {group.fields.map(f => {
               const id = `acc-${f.k}`;
               const err = (touched[f.k] || showAllErrors) && errors[f.k];

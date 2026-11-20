@@ -38,7 +38,7 @@ export function Card({ className = '', children }) {
 // Card title row: back button left · title centred (+ extra, e.g. refresh) · actions right. Wraps on small screens.
 export function CardHeader({ onBack, backLabel = 'Go back', title, extra, actions }) {
   return (
-    <div className="grid grid-cols-[auto_1fr] items-center gap-2 lg:grid-cols-[1fr_auto_1fr]">
+    <div className="grid grid-cols-[auto_1fr] items-center gap-2 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
       <div><CircleButton icon={ICONS.back} label={backLabel} onClick={onBack} /></div>
       <div className="flex items-center justify-center gap-2">
         <h1 className="text-center text-base font-bold text-brand-600">{title}</h1>

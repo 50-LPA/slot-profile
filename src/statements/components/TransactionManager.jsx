@@ -170,7 +170,7 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
             </button>
           </div>
         </div>
-        <div className="grid tx-grid">
+        <div className="st-form-grid tx-grid">
           <div className="field">
             <label htmlFor="tx-date">Transaction date <span className="req" aria-hidden="true">*</span></label>
             <DatePicker

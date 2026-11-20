@@ -76,7 +76,7 @@ export default function Dashboard({ list, onSave, onDelete, persistent }) {
         onBack={() => (history.length > 1 ? history.back() : (window.location.hash = '#/'))}
         title="Statement Builder"
         actions={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Button size="sm" variant="primary" icon={ICONS.plus} onClick={() => create(blankStatement())}>New statement</Button>
             <Button size="sm" variant="plain" onClick={() => create(demoStatement())}>New from demo</Button>
             <Button size="sm" variant="plain" onClick={() => fileRef.current.click()}>Open .json file</Button>
