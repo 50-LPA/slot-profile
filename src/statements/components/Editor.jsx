@@ -142,9 +142,7 @@ export default function Editor({ statement, onChange, savedAt, persistent, onBac
 
   const outCount = computed.outOfPeriodIds.size;
   const badCount = computed.invalidIds.size;
-  const saveText = persistent
-    ? savedAt ? `Saved in this browser · ${savedAt.toLocaleTimeString()}` : 'Everything saves automatically.'
-    : 'Browser storage blocked — use “Save as file”.';
+  const saveText = savedAt ? `Updated · ${savedAt.toLocaleTimeString()}` : 'Session active';
 
   return (
     <Card className="print:border-0 print:p-0 print:shadow-none">

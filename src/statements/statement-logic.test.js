@@ -167,3 +167,21 @@ test('old saved statements gain the new fields with empty defaults', async () =>
   assert.equal(displayName(old.account), 'Old Save');
   assert.equal(displayName({ ...old.account, title: 'Dr' }), 'Dr Old Save');
 });
+
+test('statement storage operates purely in-memory without localStorage dependency', async () => {
+  const { loadAll, saveAll, isPersistent, clearMemory } = await import('./lib/storage.js');
+  clearMemory();
+  assert.deepEqual(loadAll(), []);
+  assert.equal(isPersistent(), true);
+
+  const testStmt = blankStatement();
+  testStmt.account.holderName = 'In-Memory Test';
+  saveAll([testStmt]);
+
+  const loaded = loadAll();
+  assert.equal(loaded.length, 1);
+  assert.equal(loaded[0].account.holderName, 'In-Memory Test');
+
+  clearMemory();
+  assert.deepEqual(loadAll(), []);
+});

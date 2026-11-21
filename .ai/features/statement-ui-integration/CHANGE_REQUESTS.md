@@ -555,6 +555,24 @@ This section collects and documents the batch of 13 upcoming change requests wit
   5. **Environment-Agnostic Asset Loader**: Added `resolveAsset` to `HdfcStatementDocument.jsx` avoiding `node:url` browser bundle warnings.
   6. **Unit Tests**: Added test coverage in `statement-logic.test.js` for `fmtHdfcDate`, `fmtHdfcFullDate`, and `fmtHdfcTimestamp`.
 - **Status**: **APPROVED & FULLY IMPLEMENTED**
+
+---
+
+### [CR-032]: Removal of localStorage Dependency in Statement Builder
+- **Components**: `src/statements/lib/storage.js`, `src/statements/components/Dashboard.jsx`, `src/statements/components/Editor.jsx`, `src/statements/statement-logic.test.js`
+- **User Request**: *"we need no local storage used for statement plase check how local storage used here !"* & *"remove local storage dependency"*
+- **Category**: Storage Architecture & Data Privacy
+- **Context**:
+  - The Statement Builder previously serialized all statement drafts into the browser's `localStorage` (`statement-builder.v1`).
+  - Storing sensitive financial transactions permanently on disk in `localStorage` presents privacy concerns, and risks `QuotaExceededError` if large 6-month statements are generated.
+- **Implementation**:
+  1. **Eliminated `localStorage` Calls**: Rewrote `src/statements/lib/storage.js` to operate strictly in-memory. Removed all `localStorage.getItem`, `localStorage.setItem`, and QuotaExceeded pruning workarounds.
+  2. **In-Memory Session Lifecycle**: `loadAll()` and `saveAll(list)` maintain and normalize statements in module-scoped memory for active tab workflows.
+  3. **Cleaned Dashboard & Editor UI**:
+     - Removed `"stored in this browser"` and the warning banner about `"Browser storage is blocked"`.
+     - In `Editor.jsx`, simplified the status text to clean `"Updated · <time>"` / `"Session active"`.
+  4. **Unit Verification**: Added automated unit test in `statement-logic.test.js` verifying that statement storage operates purely in-memory with zero `localStorage` dependency.
+- **Status**: **APPROVED & FULLY IMPLEMENTED**
 ---
 
 ## Approved Design Rules

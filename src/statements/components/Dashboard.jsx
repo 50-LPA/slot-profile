@@ -94,12 +94,6 @@ export default function Dashboard({ list, onSave, onDelete, persistent }) {
         }
       />
 
-      {!persistent && (
-        <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-          Browser storage is blocked, so statements will be lost when this tab closes. Use “Save as file” inside a statement.
-        </p>
-      )}
-
       {msg && (
         <div className={`mt-3 flex items-center justify-between rounded-xl p-3 text-xs ${msg.tone === 'danger' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-800'}`} role="status">
           <span>{msg.text}</span>
@@ -109,7 +103,7 @@ export default function Dashboard({ list, onSave, onDelete, persistent }) {
 
       <div className="mt-4 flex items-center justify-between border-b border-gray-100 pb-3">
         <p className="text-xs text-gray-500">
-          <b className="text-sm font-bold text-gray-900">{rows.length}</b> saved statements · stored in this browser
+          <b className="text-sm font-bold text-gray-900">{rows.length}</b> {rows.length === 1 ? 'statement' : 'statements'}
         </p>
       </div>
 
