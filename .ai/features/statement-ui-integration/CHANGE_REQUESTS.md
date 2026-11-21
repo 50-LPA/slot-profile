@@ -46,6 +46,19 @@ This document tracks all user change requests, visual refinements, design rules,
 
 ---
 
+### [CR-004] Official FontAwesome Integration for Toolbar Icons (Lock & Document)
+- **Date**: 2026-11-21
+- **Components**: `package.json`, `index.html`, `src/main.jsx`, `src/icons.jsx`, `src/statements/components/Editor.jsx`, `src/statements/components/PdfPreview.jsx`
+- **User Request**: *"this also count in emoji , plase replace all emojies with fontawesome icons !"*
+- **Screenshot**: `uploaded_media_1795279226669.png` (zoomed into `55 pages · A4` and `Protect with password`)
+- **Rationale / Rule**:
+  - Standardized all application icons to authentic FontAwesome 6 glyphs (`@fortawesome/fontawesome-free`).
+  - Updated universal icon renderer to resolve `fa-*` classes into FontAwesome icons (`fa-solid fa-lock`, `fa-solid fa-file-lines`, etc.).
+- **Status**: **APPROVED & IMPLEMENTED**
+- **Changes**: Installed `@fortawesome/fontawesome-free`; loaded styles in `main.jsx` and `index.html`; mapped `lock` and `document` to FontAwesome in `src/icons.jsx`.
+
+---
+
 ## Approved Design Rules
 1. **Form Hierarchy**: Primary selector/classifier fields that govern the entire document template (e.g. `Bank Name`) should span full width (`full: true`) at the top of fieldsets.
 2. **Balanced 2-Column Grids**: When reordering or expanding fields in `.st-form-grid`, verify that remaining fields pair symmetrically without leaving unintended single-column holes.
