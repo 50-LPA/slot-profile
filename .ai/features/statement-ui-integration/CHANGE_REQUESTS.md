@@ -429,6 +429,25 @@ This section collects and documents the batch of 13 upcoming change requests wit
      - Extracted the hidden `<input type="file">` outside the fieldset `<legend>` directly into the root form to prevent DOM click capture conflicts.
      - Updated `Editor.jsx`'s `updateStatement` to propagate imported `bank` from `account.bank` to the statement root.
 - **Status**: **APPROVED & FULLY VERIFIED**
+
+---
+
+### [CR-025] (Item 19): Remove "Account Type" Field and Convert "Nominee Registered" to Dropdown
+- **Component**: `src/statements/components/AccountForm.jsx`
+- **User Request**: *"green remove acc type dropdown , red make this toggle to dropdown\n\ndo changes document them and commit push"*
+- **Screenshot**: `uploaded_media_1795292137624.png` (green circle around `Account type` dropdown, red circle around `Nominee registered` segmented toggle)
+- **Category**: Form Fields & UX / Simplification & Consistency
+- **Context**:
+  - The `Account type` input field added unnecessary form friction since personal bank statements default to `'Savings'` account format.
+  - The `Nominee registered` field was rendered as a 2-button segmented toggle (`[ Yes ] [ No ]`), which clashed visually with other selectable status fields (`Account status`, `Bank Name`).
+- **Proposed Solution**:
+  1. Remove `{ k: 'accountType', ... }` from `getGroups()` in `src/statements/components/AccountForm.jsx`.
+  2. Preserve `account.accountType = 'Savings'` in `blankAccount()` and `normalizeStatement()` in `src/statements/lib/model.js` so templates and calculations continue functioning without breaking.
+  3. Convert `{ k: 'nomination', label: 'Nominee registered', type: 'toggle', options: NOMINATION_OPTIONS }` to `{ k: 'nomination', label: 'Nominee registered', select: NOMINATION_OPTIONS }` to render as a native `<select>` dropdown (`Yes` / `No`).
+  4. Symmetrically structure the 2-column grid in `Bank & Account`:
+     - Row 1: `Account number *` (left), `Account status` (right)
+     - Row 2: `Branch` (left), `Nominee registered` (right)
+- **Status**: **APPROVED & IMPLEMENTED**
 ---
 
 ## Approved Design Rules

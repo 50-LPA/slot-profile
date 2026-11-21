@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import * as pdfjs from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import { ACCOUNT_STATUSES, ACCOUNT_TYPES, BANK_OPTIONS, NOMINATION_OPTIONS, TITLES, normalizeStatement } from '../lib/model.js';
+import { ACCOUNT_STATUSES, BANK_OPTIONS, NOMINATION_OPTIONS, TITLES, normalizeStatement } from '../lib/model.js';
 import { parseStatementPdf } from '../lib/pdfParser.js';
 import { Button } from '../../ui.jsx';
 import { ICONS } from '../../icons.jsx';
@@ -17,10 +17,9 @@ const getGroups = account => [
     fields: [
       { k: 'bank', label: 'Bank Name', select: BANK_OPTIONS, required: true, full: true },
       { k: 'accountNumber', label: 'Account number', required: true, inputMode: 'numeric', placeholder: 'e.g. 00001234567890', hint: 'Use a demo number.' },
-      { k: 'accountType', label: 'Account type', select: ACCOUNT_TYPES },
-      { k: 'branch', label: 'Branch', placeholder: 'e.g. Baner, Pune' },
       { k: 'accountStatus', label: 'Account status', select: ACCOUNT_STATUSES },
-      { k: 'nomination', label: 'Nominee registered', type: 'toggle', options: NOMINATION_OPTIONS },
+      { k: 'branch', label: 'Branch', placeholder: 'e.g. Baner, Pune' },
+      { k: 'nomination', label: 'Nominee registered', select: NOMINATION_OPTIONS },
     ],
   },
   {
