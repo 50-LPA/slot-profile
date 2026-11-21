@@ -136,7 +136,7 @@ export default function AccountForm({ account, errors, showAllErrors, onChange, 
       />
       {groups.map(group => (
         <fieldset key={group.title} className="group">
-          <legend className="st-group-legend">
+          {/* <legend className="st-group-legend">
             <span>{group.title}</span>
             {group.title === 'Bank & Account' && onImportStatement && (
               <div className="flex items-center">
@@ -154,7 +154,7 @@ export default function AccountForm({ account, errors, showAllErrors, onChange, 
                 </Button>
               </div>
             )}
-          </legend>
+          </legend> */}
           <div className="st-form-grid">
             {group.fields.map((f, idx) => {
               if (f.divider) {
