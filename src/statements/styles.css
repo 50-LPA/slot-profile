@@ -92,6 +92,7 @@
   }
   legend { float: left; width: 100%; padding: 0; margin-bottom: 8px; }
   legend + * { clear: both; }
+  .st-group-legend { display: flex; align-items: center; justify-content: space-between; float: none; width: 100%; margin-bottom: 8px; }
   .group-title { margin-bottom: 8px; }
   .count { margin-left: 4px; font-weight: 600; color: #9aa3ad; letter-spacing: 0; }
   .editor-foot { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; padding-top: 14px; border-top: 1px solid #e5e7eb; }

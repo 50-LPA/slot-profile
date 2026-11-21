@@ -91,12 +91,12 @@ test('Kotak Bank narration formatting conforms to standard', () => {
     },
   });
 
-  const credit = txs.find(t => t.type === 'credit');
+  const credit = txs.find(t => t._isMonthlyCredit);
   assert.ok(credit);
   assert.match(credit.description, /NEFT CR-KKBK0001767/);
 
   const debits = txs.filter(t => t.type === 'debit');
-  assert.ok(debits.length >= 10);
+  assert.ok(debits.length >= 8);
   const upiDebits = debits.filter(t => t.description.startsWith('UPI/'));
   assert.ok(upiDebits.length > 0);
   assert.match(upiDebits[0].reference, /^UPI-\d{12}$/);

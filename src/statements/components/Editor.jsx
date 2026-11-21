@@ -1,12 +1,11 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { compute } from '../lib/calc.js';
 import { demoStatement } from '../lib/demo.js';
-import { blankAccount, normalizeStatement, statementTitle } from '../lib/model.js';
+import { blankAccount, statementTitle } from '../lib/model.js';
 import { validateAccount } from '../lib/validate.js';
-import { downloadStatementPdf, saveBlob } from '../pdf/generate.jsx';
+import { downloadStatementPdf } from '../pdf/generate.jsx';
 import AccountForm from './AccountForm.jsx';
 import PdfPreview from './PdfPreview.jsx';
-import SummaryBar from './SummaryBar.jsx';
 import TransactionManager from './TransactionManager.jsx';
 import TransactionSeeder from './TransactionSeeder.jsx';
 import { Button, Card, CardHeader } from '../../ui.jsx';
@@ -85,27 +84,6 @@ export default function Editor({ statement, onChange, savedAt, persistent, onBac
     }
   }
 
-  const fileRef = useRef(null);
-
-  async function openJsonFile(file) {
-    if (fileRef.current) fileRef.current.value = '';
-    if (!file) return;
-    try {
-      if (file.size > 5_000_000) throw new Error('file is larger than 5 MB');
-      const st = normalizeStatement(JSON.parse(await file.text()));
-      if (!st) throw new Error('this is not a valid Statement Builder file');
-      onChange({ ...statement, account: st.account, transactions: st.transactions });
-      setNotice({ tone: 'ok', text: `Loaded statement for ${st.account.holderName || 'Untitled'} (${st.transactions.length} transactions).` });
-    } catch (e) {
-      setNotice({ tone: 'danger', text: `Could not load file: ${e.message}` });
-    }
-  }
-
-  function saveFile() {
-    const name = (a.holderName || 'statement').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    saveBlob(new Blob([JSON.stringify(statement, null, 2)], { type: 'application/json' }), `statement-${name}.json`);
-  }
-
   function loadDemo() {
     if ((statement.transactions.length || a.holderName) && !window.confirm('Replace this statement’s details and transactions with demo data?')) return;
     const demo = demoStatement();
@@ -114,10 +92,10 @@ export default function Editor({ statement, onChange, savedAt, persistent, onBac
   }
 
   function resetForm() {
-    if (!window.confirm('Reset the form? All account details and transactions in this statement will be cleared.')) return;
+    if (!window.confirm('Clear the form? All account details and transactions in this statement will be cleared.')) return;
     onChange({ ...statement, account: blankAccount(), transactions: [] });
     setShowAllErrors(false);
-    setNotice({ tone: 'ok', text: 'Form reset.' });
+    setNotice({ tone: 'ok', text: 'Form cleared.' });
   }
 
   const outCount = computed.outOfPeriodIds.size;
@@ -135,10 +113,7 @@ export default function Editor({ statement, onChange, savedAt, persistent, onBac
           <div className="flex flex-wrap items-center justify-end gap-1.5">
             <span className="mr-1 text-xs text-gray-500 font-normal">{saveText}</span>
             <Button size="sm" variant="plain" onClick={loadDemo}>Load demo</Button>
-            <Button size="sm" variant="plain" onClick={() => fileRef.current?.click()}>Load .json</Button>
-            <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={e => openJsonFile(e.target.files[0])} />
-            <Button size="sm" variant="plain" onClick={saveFile}>Save .json</Button>
-            <Button size="sm" variant="danger" onClick={resetForm}>Reset</Button>
+            <Button size="sm" variant="danger" onClick={resetForm}>Clear</Button>
           </div>
         }
       />
@@ -165,7 +140,14 @@ export default function Editor({ statement, onChange, savedAt, persistent, onBac
             </ul>
           ) : null}
 
-          <AccountForm account={a} errors={errors} showAllErrors={showAllErrors} onChange={setAccount} />
+          <AccountForm
+            account={a}
+            errors={errors}
+            showAllErrors={showAllErrors}
+            onChange={setAccount}
+            onImportStatement={updateStatement}
+            setNotice={setNotice}
+          />
           <TransactionSeeder account={a} transactions={statement.transactions} onSeed={handleSeedReplace} onAppend={handleSeedAppend} />
           <TransactionManager statement={statement} onTransactions={setTransactions} onAccount={setAccount} onUpdateStatement={updateStatement} />
         </div>

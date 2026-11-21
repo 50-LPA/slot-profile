@@ -1,5 +1,8 @@
-import { useState } from 'react';
-import { ACCOUNT_STATUSES, ACCOUNT_TYPES, BANK_OPTIONS, NOMINATION_OPTIONS, TITLES } from '../lib/model.js';
+import { useRef, useState } from 'react';
+import { ACCOUNT_STATUSES, ACCOUNT_TYPES, BANK_OPTIONS, NOMINATION_OPTIONS, TITLES, normalizeStatement } from '../lib/model.js';
+import { parseStatementPdf } from '../lib/pdfParser.js';
+import { Button } from '../../ui.jsx';
+import { ICONS } from '../../icons.jsx';
 import DatePicker from './DatePicker.jsx';
 
 const getGroups = account => [
@@ -65,9 +68,53 @@ const getGroups = account => [
   },
 ];
 
-export default function AccountForm({ account, errors, showAllErrors, onChange }) {
+export default function AccountForm({ account, errors, showAllErrors, onChange, onImportStatement, setNotice }) {
   const [touched, setTouched] = useState({});
+  const [importingPdf, setImportingPdf] = useState(false);
+  const pdfInputRef = useRef(null);
   const touch = k => setTouched(t => (t[k] ? t : { ...t, [k]: true }));
+
+  async function handlePdfFileChange(e) {
+    const file = e.target.files?.[0];
+    if (pdfInputRef.current) pdfInputRef.current.value = '';
+    if (!file) return;
+
+    setImportingPdf(true);
+    try {
+      if (file.size > 20_000_000) throw new Error('File exceeds 20 MB limit.');
+      const parsed = await parseStatementPdf(file);
+      if (!parsed || !parsed.account) throw new Error('No valid account details found in the PDF.');
+
+      const normalized = normalizeStatement({
+        account: parsed.account,
+        transactions: parsed.transactions,
+      });
+
+      if (onImportStatement) {
+        onImportStatement({
+          account: normalized.account,
+          transactions: normalized.transactions,
+        });
+      }
+
+      if (setNotice) {
+        setNotice({
+          tone: 'ok',
+          text: `Imported ${parsed.detectedBank} statement for ${parsed.account.holderName || 'customer'} (${parsed.transactions.length} transactions).`,
+        });
+      }
+    } catch (err) {
+      const isPassword = err?.name === 'PasswordException' || err?.message?.toLowerCase().includes('password');
+      const errorMsg = isPassword
+        ? 'This PDF is password-protected. Please unlock it before importing.'
+        : `PDF import failed: ${err.message || 'Unable to parse statement'}`;
+      if (setNotice) {
+        setNotice({ tone: 'danger', text: errorMsg });
+      }
+    } finally {
+      setImportingPdf(false);
+    }
+  }
 
   const groups = getGroups(account);
 
@@ -75,7 +122,32 @@ export default function AccountForm({ account, errors, showAllErrors, onChange }
     <form className="panel" noValidate onSubmit={e => e.preventDefault()} aria-label="Account details">
       {groups.map(group => (
         <fieldset key={group.title} className="group">
-          <legend>{group.title}</legend>
+          <legend className="st-group-legend">
+            <span>{group.title}</span>
+            {group.title === 'Bank & Account' && onImportStatement && (
+              <div className="flex items-center">
+                <input
+                  ref={pdfInputRef}
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  style={{ display: 'none' }}
+                  onChange={handlePdfFileChange}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="plain"
+                  icon={ICONS.import}
+                  onClick={() => pdfInputRef.current?.click()}
+                  disabled={importingPdf}
+                  title="Import statement details and transactions from a Kotak or HDFC PDF"
+                  className="h-7 px-2 text-xs font-semibold normal-case tracking-normal text-emerald-700 hover:bg-emerald-50"
+                >
+                  {importingPdf ? 'Importing...' : 'Import PDF'}
+                </Button>
+              </div>
+            )}
+          </legend>
           <div className="st-form-grid">
             {group.fields.map((f, idx) => {
               if (f.divider) {

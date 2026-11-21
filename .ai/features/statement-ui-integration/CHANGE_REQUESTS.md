@@ -294,7 +294,7 @@ This section collects and documents the batch of 13 upcoming change requests wit
 - **Proposed Solution**:
   - Remove `<Button size="sm" variant="plain" onClick={() => fileRef.current?.click()}>Load .json</Button>` and `<Button size="sm" variant="plain" onClick={saveFile}>Save .json</Button>` from `Editor.jsx`.
   - Keep `Reset` and `Load demo` (or move export to an explicit secondary menu if needed later).
-- **Status**: **DOCUMENTED (Ready for implementation)**
+- **Status**: **APPROVED & IMPLEMENTED (Batch 3)**
 
 ---
 
@@ -326,7 +326,9 @@ This section collects and documents the batch of 13 upcoming change requests wit
   5. **State Ingestion**:
      - Call `normalizeStatement()` on the parsed payload and update the statement state atomically (updating both `account` and `transactions` via `onUpdateStatement`).
      - Display a success toast notification: `"Successfully imported X transactions and account details from Kotak/HDFC statement."`
-- **Status**: **DOCUMENTED (Ready for implementation)**
+- **Status**: **APPROVED & IMPLEMENTED (Batch 4)**
+
+---
 
 ### [CR-020] (Item 14): Rename "Reset" Header Button Label to "Clear"
 - **Component**: `src/statements/components/Editor.jsx`
@@ -345,8 +347,7 @@ This section collects and documents the batch of 13 upcoming change requests wit
     <Button size="sm" variant="danger" onClick={resetForm}>Clear</Button>
     ```
   - Keep the confirmation prompt (`"Clear all account details and transactions in this statement? This cannot be undone."`) and resetting logic intact.
-- **Status**: **DOCUMENTED (Ready for implementation)**
-
+- **Status**: **APPROVED & IMPLEMENTED (Batch 3)**
 ---
 
 ## Approved Design Rules
