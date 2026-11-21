@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { compute } from './lib/calc.js';
 import { exportTransactionsCSV, importTransactionsCSV, parseCSV } from './lib/csv.js';
 import { demoStatement } from './lib/demo.js';
-import { fmtDashDate, fmtDate, fmtGenerated, isISODate, money, nowStamp, parseFlexibleDate, toPaise } from './lib/format.js';
+import { fmtDashDate, fmtDate, fmtGenerated, fmtHdfcDate, fmtHdfcFullDate, fmtHdfcTimestamp, isISODate, money, nowStamp, parseFlexibleDate, toPaise } from './lib/format.js';
 import { blankStatement, maskAccount } from './lib/model.js';
 import { validateAccount, validateTransaction } from './lib/validate.js';
 
@@ -50,6 +50,15 @@ test('PDF footer timestamp: "Statement Generated on 12 Nov 2026, 15:48"', () => 
   assert.equal(fmtGenerated('2026-11-12'), '12 Nov 2026'); // date only: no time printed
   assert.equal(fmtGenerated(''), '');
   assert.equal(fmtGenerated(undefined), '');
+});
+
+test('HDFC date & uppercase timestamp formatting', () => {
+  assert.equal(fmtHdfcDate('2026-11-05'), '05/11/26');
+  assert.equal(fmtHdfcDate('2024-12-02'), '02/12/24');
+  assert.equal(fmtHdfcFullDate('2026-11-05'), '05/11/2026');
+  assert.equal(fmtHdfcTimestamp('2025-05-15T04:24:15'), '15-MAY-2025 04:24:15');
+  assert.equal(fmtHdfcTimestamp('2026-11-12T15:48'), '12-NOV-2026 15:48:00');
+  assert.match(fmtHdfcTimestamp(), /^\d{2}-[A-Z]{3}-\d{4} \d{2}:\d{2}:\d{2}$/);
 });
 
 test('running balance, totals and closing = opening + credits - debits', () => {

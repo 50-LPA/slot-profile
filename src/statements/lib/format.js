@@ -74,6 +74,44 @@ export function fmtGenerated(stamp) {
   return date && time ? `${date}, ${time}` : date;
 }
 
+const HDFC_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+/** "2026-11-05" -> "05/11/24" (HDFC 2-digit year date) */
+export const fmtHdfcDate = iso => {
+  if (!iso) return '';
+  const [y, m, d] = String(iso).slice(0, 10).split('-');
+  if (!d || !m || !y) return iso;
+  return `${d}/${m}/${y.slice(-2)}`;
+};
+
+/** "2026-11-05" -> "05/11/2026" (HDFC full 4-digit year date) */
+export const fmtHdfcFullDate = iso => {
+  if (!iso) return '';
+  const [y, m, d] = String(iso).slice(0, 10).split('-');
+  if (!d || !m || !y) return iso;
+  return `${d}/${m}/${y}`;
+};
+
+/** "2026-11-12T15:48:22" or now -> "12-NOV-2026 15:48:22" (HDFC uppercase timestamp) */
+export function fmtHdfcTimestamp(stamp) {
+  if (!stamp) {
+    const now = new Date();
+    const d = pad(now.getDate());
+    const m = HDFC_MONTHS[now.getMonth()];
+    const y = now.getFullYear();
+    const t = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    return `${d}-${m}-${y} ${t}`;
+  }
+  const s = String(stamp);
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}:\d{2})(?::(\d{2}))?)?/.exec(s);
+  if (!m) return s;
+  const day = m[3];
+  const mon = HDFC_MONTHS[+m[2] - 1] || 'JAN';
+  const yr = m[1];
+  const time = m[4] ? `${m[4]}:${m[5] || '00'}` : '00:00:00';
+  return `${day}-${mon}-${yr} ${time}`;
+}
+
 /** Accepts YYYY-MM-DD, DD/MM/YYYY, DD-MM-YY, DD.MM.YYYY and "5 Nov 2026". Returns ISO or ''. */
 export function parseFlexibleDate(input) {
   const s = String(input ?? '').trim();

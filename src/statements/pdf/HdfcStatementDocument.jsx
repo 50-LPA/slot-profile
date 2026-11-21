@@ -1,25 +1,38 @@
 import { Document, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
-import { money } from '../lib/format.js';
+import { fmtHdfcDate, fmtHdfcFullDate, fmtHdfcTimestamp, money } from '../lib/format.js';
 
-const HDFC_LOGO = new URL('./logos/hdfc-logo.jpeg', import.meta.url).href;
+const resolveAsset = rel => {
+  const url = new URL(rel, import.meta.url);
+  if (typeof window === 'undefined' && typeof self === 'undefined' && url.protocol === 'file:') {
+    return url.pathname;
+  }
+  return url.href;
+};
+
+const HDFC_LOGO = resolveAsset('./logos/hdfc-logo.jpeg');
 
 const FONT = 'Times-Roman';
 const FONT_BOLD = 'Times-Bold';
 
 const pdfText = s => String(s ?? '').replace(/[^\x20-\x7E\xA0-\xFF–—‘’“”•…€₹\n]/g, '?');
 
-const fmtHdfcDate = iso => {
-  if (!iso) return '';
-  const [y, m, d] = String(iso).slice(0, 10).split('-');
-  if (!d || !m || !y) return iso;
-  return `${d}/${m}/${y.slice(-2)}`;
+const deriveBranchCode = (ifsc, explicitCode) => {
+  if (explicitCode && String(explicitCode).trim()) return String(explicitCode).trim();
+  if (ifsc) {
+    const match = String(ifsc).match(/^(?:HDFC|DEMO)0*([0-9A-Za-z]+)$/i);
+    if (match) return match[1];
+  }
+  return '794';
 };
 
-const fmtHdfcFullDate = iso => {
-  if (!iso) return '';
-  const [y, m, d] = String(iso).slice(0, 10).split('-');
-  if (!d || !m || !y) return iso;
-  return `${d}/${m}/${y}`;
+const deriveEmail = (email, holderName) => {
+  if (email && email.trim()) return email.trim().toUpperCase();
+  const base = (holderName || 'customer')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '.')
+    .replace(/\.+/g, '.')
+    .replace(/^\.|\.$/g, '');
+  return `${base || 'customer'}@gmail.com`.toUpperCase();
 };
 
 const s = StyleSheet.create({
@@ -270,8 +283,6 @@ const s = StyleSheet.create({
     fontSize: 8.0,
     flex: 1,
     textAlign: 'center',
-    borderRightWidth: 0.57,
-    borderRightColor: '#7F807F',
   },
   summaryTr: {
     flexDirection: 'row',
@@ -282,13 +293,28 @@ const s = StyleSheet.create({
     fontSize: 8.0,
     flex: 1,
     textAlign: 'center',
-    borderRightWidth: 0.57,
-    borderRightColor: '#7F807F',
   },
-  genMeta: {
-    marginTop: 10,
+  genMetaRow: {
+    flexDirection: 'row',
+    marginTop: 8,
     fontSize: 7.5,
-    lineHeight: 1.3,
+    fontFamily: FONT,
+    lineHeight: 1.2,
+  },
+  genMetaOn: {
+    width: 200,
+  },
+  genMetaBy: {
+    width: 170,
+  },
+  genMetaBranch: {
+    flex: 1,
+  },
+  genMetaNote: {
+    marginTop: 18,
+    textAlign: 'right',
+    fontSize: 7.5,
+    fontFamily: FONT,
   },
 
   // 6. Fixed footer at bottom (top: 782.5)
@@ -331,6 +357,19 @@ export default function HdfcStatementDocument({ statement, computed, generatedAt
     (a.state || 'MAHARASHTRA').toUpperCase(),
   ].filter(Boolean);
 
+  const branchCode = deriveBranchCode(a.ifsc, a.branchCode);
+  const email = deriveEmail(a.email, a.holderName);
+  const custId = a.customerId || '104582731';
+  const openDate = a.openDate || a.accountOpenDate || '15/06/2018';
+  const branchName = (a.branch || 'HINJAWADI').toUpperCase();
+  const branchAddressLines = a.branchAddress
+    ? a.branchAddress.split('\n').map(l => l.trim()).filter(Boolean)
+    : ['SURVEY NO 244/3 4 5,', 'RAJIV GANDHI INFOTECH PARK,', 'NR TATA JOHNSON CONTROLS,'];
+  const branchCity = (a.branchCity || a.city || 'PUNE').toUpperCase();
+  const branchState = (a.branchState || a.state || 'MAHARASHTRA').toUpperCase();
+  const productCode = a.productCode || '113';
+  const relationship = (a.productName || a.relationshipType || 'PRIME POTENTIAL').toUpperCase();
+
   const drCount = computed.lines.filter(l => l.debit > 0).length;
   const crCount = computed.lines.filter(l => l.credit > 0).length;
 
@@ -366,24 +405,25 @@ export default function HdfcStatementDocument({ statement, computed, generatedAt
             <View style={s.bankRow}>
               <Text style={s.bankLabel}>Account Branch</Text>
               <Text style={s.bankColon}>:</Text>
-              <Text style={s.bankVal}>{pdfText((a.branch || 'HINJAWADI').toUpperCase())}</Text>
+              <Text style={s.bankVal}>{pdfText(branchName)}</Text>
             </View>
             <View style={s.bankRow}>
               <Text style={s.bankLabel}>Address</Text>
               <Text style={s.bankColon}>:</Text>
-              <Text style={s.bankVal}>SURVEY NO 244/3 4 5,</Text>
+              <Text style={s.bankVal}>{pdfText(branchAddressLines[0] || '')}</Text>
             </View>
-            <Text style={s.addrIndent}>RAJIV GANDHI INFOTECH PARK,</Text>
-            <Text style={s.addrIndent}>NR TATA JOHNSON CONTROLS,</Text>
+            {branchAddressLines.slice(1).map((line, idx) => (
+              <Text key={idx} style={s.addrIndent}>{pdfText(line)}</Text>
+            ))}
             <View style={s.bankRow}>
               <Text style={s.bankLabel}>City</Text>
               <Text style={s.bankColon}>:</Text>
-              <Text style={s.bankVal}>PUNE</Text>
+              <Text style={s.bankVal}>{pdfText(branchCity)}</Text>
             </View>
             <View style={s.bankRow}>
               <Text style={s.bankLabel}>State</Text>
               <Text style={s.bankColon}>:</Text>
-              <Text style={s.bankVal}>MAHARASHTRA</Text>
+              <Text style={s.bankVal}>{pdfText(branchState)}</Text>
             </View>
             <View style={s.bankRow}>
               <Text style={s.bankLabel}>Phone no.</Text>
@@ -393,28 +433,28 @@ export default function HdfcStatementDocument({ statement, computed, generatedAt
             <View style={s.bankRow}>
               <Text style={s.bankLabel}>OD Limit</Text>
               <Text style={s.bankColon}>:</Text>
-              <Text style={s.bankValShort}>0</Text>
+              <Text style={s.bankValShort}>{pdfText(a.odLimit || '0')}</Text>
               <Text style={s.inlineRightLabel}>Currency : {cur}</Text>
             </View>
             <View style={s.bankRow}>
               <Text style={s.bankLabel}>Email</Text>
               <Text style={s.bankColon}>:</Text>
-              <Text style={s.bankVal}>KIRAN.SHINDE410@GMAIL.COM</Text>
+              <Text style={s.bankVal}>{pdfText(email)}</Text>
             </View>
             <View style={s.bankRow}>
               <Text style={s.bankLabel}>Cust ID</Text>
               <Text style={s.bankColon}>:</Text>
-              <Text style={s.bankVal}>{pdfText(a.customerId || '114715446')}</Text>
+              <Text style={s.bankVal}>{pdfText(custId)}</Text>
             </View>
             <View style={s.bankRow}>
               <Text style={s.bankLabel}>Account No</Text>
               <Text style={s.bankColon}>:</Text>
-              <Text style={s.bankVal}>{pdfText(a.accountNumber)}   PRIME POTENTIAL</Text>
+              <Text style={s.bankVal}>{pdfText(a.accountNumber)}   {pdfText(relationship)}</Text>
             </View>
             <View style={s.bankRow}>
               <Text style={s.bankLabel}>A/C Open Date</Text>
               <Text style={s.bankColon}>:</Text>
-              <Text style={s.bankVal}>15/06/2018</Text>
+              <Text style={s.bankVal}>{pdfText(fmtHdfcDate(openDate))}</Text>
             </View>
             <View style={s.bankRow}>
               <Text style={s.bankLabel}>Account Status</Text>
@@ -430,8 +470,8 @@ export default function HdfcStatementDocument({ statement, computed, generatedAt
             <View style={s.bankRow}>
               <Text style={s.bankLabel}>Branch Code</Text>
               <Text style={s.bankColon}>:</Text>
-              <Text style={s.bankValBranch}>794</Text>
-              <Text style={s.inlineRightLabel}>Product Code : 113</Text>
+              <Text style={s.bankValBranch}>{pdfText(branchCode)}</Text>
+              <Text style={s.inlineRightLabel}>Product Code : {pdfText(productCode)}</Text>
             </View>
           </View>
         </View>
@@ -471,7 +511,7 @@ export default function HdfcStatementDocument({ statement, computed, generatedAt
               <Text style={s.summaryTh}>Cr Count</Text>
               <Text style={s.summaryTh}>Debits</Text>
               <Text style={s.summaryTh}>Credits</Text>
-              <Text style={[s.summaryTh, s.thLast]}>Closing Bal</Text>
+              <Text style={s.summaryTh}>Closing Bal</Text>
             </View>
             <View style={s.summaryTr}>
               <Text style={s.summaryTd}>{m(computed.opening)}</Text>
@@ -479,16 +519,16 @@ export default function HdfcStatementDocument({ statement, computed, generatedAt
               <Text style={s.summaryTd}>{crCount}</Text>
               <Text style={s.summaryTd}>{m(computed.debit)}</Text>
               <Text style={s.summaryTd}>{m(computed.credit)}</Text>
-              <Text style={[s.summaryTd, s.tdLast]}>{m(computed.closing)}</Text>
+              <Text style={s.summaryTd}>{m(computed.closing)}</Text>
             </View>
           </View>
 
-          <View style={s.genMeta}>
-            <Text>Generated On: 15-MAY-2025 04:24:15</Text>
-            <Text>Generated By: {pdfText(a.customerId || '114715446')}</Text>
-            <Text>Requesting Branch Code: 794</Text>
-            <Text>This is a computer generated statement and does not require signature.</Text>
+          <View style={s.genMetaRow}>
+            <Text style={s.genMetaOn}>Generated On: {fmtHdfcTimestamp(generatedAt)}</Text>
+            <Text style={s.genMetaBy}>Generated By: {pdfText(custId)}</Text>
+            <Text style={s.genMetaBranch}>Requesting Branch Code: {pdfText(branchCode)}</Text>
           </View>
+          <Text style={s.genMetaNote}>This is a computer generated statement and does not require signature.</Text>
         </View>
 
         {/* Fixed footer on every page */}
