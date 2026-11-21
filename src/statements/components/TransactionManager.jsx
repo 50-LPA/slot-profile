@@ -1,16 +1,14 @@
 import { useRef, useState } from 'react';
-import { isISODate, money, plainAmount, todayISO, toPaise } from '../lib/format.js';
+import { isISODate, plainAmount, todayISO, toPaise } from '../lib/format.js';
 import { newId } from '../lib/model.js';
 import { fillTransactionGaps, parseTransactionsFromJson } from '../lib/seeder.js';
 import { ICONS, Icon } from '../../icons.jsx';
 import { Button, Card } from '../../ui.jsx';
-import { ask, toast } from '../../toast.jsx';
+import { ask } from '../../toast.jsx';
 import DatePicker from './DatePicker.jsx';
 
 export default function TransactionManager({ statement, onTransactions, onAccount, onUpdateStatement }) {
   const txns = statement.transactions || [];
-  const cur = statement.account?.currency || 'INR';
-  const m = p => money(p, cur);
 
   const [msg, setMsg] = useState(null);
   const [fillingGaps, setFillingGaps] = useState(false);
