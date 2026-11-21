@@ -1,49 +1,105 @@
 import { useRef, useState } from 'react';
-import { money, plainAmount, todayISO, toPaise } from '../lib/format.js';
-import { blankTransaction, newId } from '../lib/model.js';
+import { isISODate, money, plainAmount, todayISO, toPaise } from '../lib/format.js';
+import { newId } from '../lib/model.js';
 import { fillTransactionGaps, parseTransactionsFromJson } from '../lib/seeder.js';
-import { validateTransaction } from '../lib/validate.js';
-import { ICONS } from '../../icons.jsx';
+import { ICONS, Icon } from '../../icons.jsx';
 import { Button, Card } from '../../ui.jsx';
 import DatePicker from './DatePicker.jsx';
 
 export default function TransactionManager({ statement, onTransactions, onAccount, onUpdateStatement }) {
-  const txns = statement.transactions;
-  const cur = statement.account.currency;
+  const txns = statement.transactions || [];
+  const cur = statement.account?.currency || 'INR';
   const m = p => money(p, cur);
 
-  const lastDate = () => txns.reduce((d, t) => (t.date > d ? t.date : d), '') || statement.account.periodStart || todayISO();
-  const [draft, setDraft] = useState(() => ({ ...blankTransaction(lastDate()), type: 'credit' }));
-  const [errors, setErrors] = useState({});
   const [msg, setMsg] = useState(null);
   const [fillingGaps, setFillingGaps] = useState(false);
-  const formRef = useRef(null);
-  const descRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const set = patch => setDraft(d => ({ ...d, ...patch }));
+  // Appends a new empty transaction form at the end of the ledger
+  function handleAddTransaction() {
+    let nextDate = statement.account?.periodStart || todayISO();
+    if (txns.length > 0) {
+      const last = txns[txns.length - 1];
+      if (last.date && isISODate(last.date)) {
+        const [y, mo, d] = last.date.split('-').map(Number);
+        if (y && mo && d) {
+          const nextM = mo === 12 ? 1 : mo + 1;
+          const nextY = mo === 12 ? y + 1 : y;
+          const lastDay = new Date(nextY, nextM, 0).getDate();
+          const targetDay = Math.min(d, lastDay);
+          nextDate = `${nextY}-${String(nextM).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`;
+        } else {
+          nextDate = last.date;
+        }
+      } else if (last.date) {
+        nextDate = last.date;
+      }
+    }
 
-  function submit(e) {
-    e.preventDefault();
-    const t = {
-      ...draft,
-      description: draft.description.trim(),
-      reference: draft.reference.trim(),
-      amount: draft.amount.trim(),
+    const newTx = {
+      id: newId(),
+      date: nextDate,
+      valueDate: '',
+      description: 'Salary credit - ' + (statement.account?.holderName ? 'Employer Pvt Ltd' : 'Tech Corp Pvt Ltd'),
+      reference: '',
+      amount: '',
       type: 'credit',
     };
-    const errs = validateTransaction(t);
-    setErrors(errs);
-    if (Object.keys(errs).length) {
-      formRef.current.querySelector('[aria-invalid="true"]')?.focus();
-      return;
+
+    onTransactions(list => [...list, newTx]);
+    setMsg({ tone: 'ok', text: `Created transaction #${txns.length + 1}.` });
+  }
+
+  // Inserts a new empty transaction form in between existing records at targetIndex
+  function handleInsertAt(targetIndex) {
+    let baseDate = statement.account?.periodStart || todayISO();
+    if (targetIndex > 0 && txns[targetIndex - 1]?.date) {
+      baseDate = txns[targetIndex - 1].date;
+    } else if (targetIndex < txns.length && txns[targetIndex]?.date) {
+      baseDate = txns[targetIndex].date;
     }
-    t.amount = plainAmount(toPaise(t.amount));
-    onTransactions(list => [...list, { ...t, id: newId() }]);
-    setMsg({ tone: 'ok', text: `Added credit: ${t.description} (${m(toPaise(t.amount))}).` });
-    setDraft({ ...blankTransaction(t.date), type: 'credit' });
-    setErrors({});
-    descRef.current?.focus();
+
+    const newTx = {
+      id: newId(),
+      date: baseDate,
+      valueDate: '',
+      description: 'Salary credit',
+      reference: '',
+      amount: '',
+      type: 'credit',
+    };
+
+    onTransactions(list => [
+      ...list.slice(0, targetIndex),
+      newTx,
+      ...list.slice(targetIndex),
+    ]);
+    setMsg({ tone: 'ok', text: `Inserted empty transaction at position #${targetIndex + 1}.` });
+  }
+
+  // Removes a transaction record at targetIndex
+  function handleRemove(targetIndex) {
+    const removed = txns[targetIndex];
+    onTransactions(list => list.filter((_, idx) => idx !== targetIndex));
+    setMsg({
+      tone: 'ok',
+      text: `Removed transaction #${targetIndex + 1}${removed?.description ? ` (${removed.description})` : ''}.`,
+    });
+  }
+
+  // Live in-place field updater for any transaction
+  function updateField(index, key, val) {
+    onTransactions(list =>
+      list.map((t, idx) => (idx === index ? { ...t, [key]: val } : t))
+    );
+  }
+
+  // Formats amount to standard two-decimal paise representation on blur
+  function handleAmountBlur(index, rawVal) {
+    const p = toPaise(rawVal);
+    if (!isNaN(p) && p > 0) {
+      updateField(index, 'amount', plainAmount(p));
+    }
   }
 
   async function handleJsonFile(e) {
@@ -137,17 +193,9 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
     }
   }
 
-  const fieldProps = k => ({
-    id: `tx-${k}`,
-    value: draft[k],
-    onChange: e => set({ [k]: e.target.value }),
-    'aria-invalid': errors[k] ? 'true' : undefined,
-    'aria-describedby': errors[k] ? `tx-${k}-err` : undefined,
-  });
-  const err = k => errors[k] && <small id={`tx-${k}-err`} className="error">{errors[k]}</small>;
-
   return (
     <Card className="mt-4">
+      {/* Top Header & Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
         <div className="flex items-center gap-2">
           <h2 className="text-base font-bold text-gray-900">Transactions</h2>
@@ -156,6 +204,16 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
           </span>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
+          <Button
+            size="sm"
+            variant="plain"
+            icon={ICONS.plus}
+            onClick={handleAddTransaction}
+            title="Add a new transaction form"
+            className="h-8 px-2.5 font-bold text-emerald-700 hover:bg-emerald-50"
+          >
+            + Add transaction
+          </Button>
           <Button
             size="sm"
             variant="plain"
@@ -187,61 +245,169 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
         </div>
       </div>
 
-      <form ref={formRef} className="mt-4 group tx-form" onSubmit={submit} noValidate aria-label="Add transaction">
-        <div className="st-form-grid tx-grid">
-          <div className="field">
-            <label htmlFor="tx-date">Transaction date <span className="req" aria-hidden="true">*</span></label>
-            <DatePicker
-              id="tx-date"
-              name="date"
-              value={draft.date}
-              onChange={d => set({ date: d })}
-              placeholder="dd-mmm-yyyy"
-              required
-              aria-invalid={errors.date ? 'true' : undefined}
-              aria-describedby={errors.date ? 'tx-date-err' : undefined}
-            />
-            {err('date')}
+      {/* Transactions Multi-Record Form List */}
+      <div className="mt-4">
+        {txns.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50/50 p-6 text-center">
+            <p className="text-xs text-gray-500 mb-3">No transactions added yet.</p>
+            <Button
+              type="button"
+              size="sm"
+              variant="primary"
+              icon={ICONS.plus}
+              onClick={handleAddTransaction}
+            >
+              + Add first transaction
+            </Button>
           </div>
-          <div className="field">
-            <label htmlFor="tx-valueDate">Value date</label>
-            <DatePicker
-              id="tx-valueDate"
-              name="valueDate"
-              value={draft.valueDate}
-              onChange={d => set({ valueDate: d })}
-              placeholder="Blank = same as date"
-              aria-invalid={errors.valueDate ? 'true' : undefined}
-              aria-describedby={errors.valueDate ? 'tx-valueDate-err' : undefined}
-            />
-            {err('valueDate') || <small className="hint">Blank = same as transaction date</small>}
-          </div>
-          <div className="field full">
-            <label htmlFor="tx-description">Description <span className="req" aria-hidden="true">*</span></label>
-            <input ref={descRef} maxLength={160} placeholder="e.g. Salary credit - Demo Technologies Pvt Ltd" {...fieldProps('description')} />
-            {err('description')}
-          </div>
-          <div className="field">
-            <label htmlFor="tx-reference">Chq/Ref. No.</label>
-            <input maxLength={30} placeholder="Demo reference" {...fieldProps('reference')} />
-            {err('reference')}
-          </div>
-          <div className="field">
-            <label htmlFor="tx-amount">Amount ({cur}) <span className="req" aria-hidden="true">*</span></label>
-            <input inputMode="decimal" placeholder="0.00" {...fieldProps('amount')} />
-            {err('amount')}
-          </div>
-          <div className="field full tx-actions">
-            <Button type="submit" variant="primary" size="md" className="w-full">Add credit transaction</Button>
-          </div>
-        </div>
-      </form>
+        ) : (
+          <div className="space-y-3.5 max-h-[720px] overflow-y-auto pr-1">
+            {txns.map((tx, idx) => (
+              <div
+                key={tx.id || idx}
+                className="relative rounded-xl border border-gray-200 bg-gray-50/60 p-3.5 transition-all hover:border-gray-300 hover:bg-white shadow-2xs"
+              >
+                {/* Form Card Header */}
+                <div className="flex flex-wrap items-center justify-between gap-1.5 mb-2.5 border-b border-gray-200/70 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                      Transaction #{idx + 1}
+                    </span>
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                        tx.type === 'credit'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-rose-100 text-rose-800'
+                      }`}
+                    >
+                      {tx.type || 'credit'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="plain"
+                      onClick={() => handleInsertAt(idx)}
+                      title="Insert empty transaction above"
+                      className="h-6 px-1.5 text-[11px] text-gray-600 hover:text-emerald-700 hover:bg-emerald-50"
+                    >
+                      + Insert above
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="plain"
+                      onClick={() => handleInsertAt(idx + 1)}
+                      title="Insert empty transaction below"
+                      className="h-6 px-1.5 text-[11px] text-gray-600 hover:text-emerald-700 hover:bg-emerald-50"
+                    >
+                      + Insert below
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(idx)}
+                      title="Remove this transaction"
+                      className="inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer transition-colors ml-0.5"
+                      aria-label={`Remove transaction ${idx + 1}`}
+                    >
+                      <Icon d={ICONS.trash} className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
 
+                {/* Form Grid */}
+                <div className="st-form-grid">
+                  <div className="field">
+                    <label htmlFor={`tx-${tx.id || idx}-date`}>
+                      Transaction date <span className="req">*</span>
+                    </label>
+                    <DatePicker
+                      id={`tx-${tx.id || idx}-date`}
+                      value={tx.date}
+                      onChange={val => updateField(idx, 'date', val)}
+                      placeholder="dd-mmm-yyyy"
+                      required
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor={`tx-${tx.id || idx}-valueDate`}>Value date</label>
+                    <DatePicker
+                      id={`tx-${tx.id || idx}-valueDate`}
+                      value={tx.valueDate}
+                      onChange={val => updateField(idx, 'valueDate', val)}
+                      placeholder="Blank = same as date"
+                    />
+                  </div>
+                  <div className="field full">
+                    <label htmlFor={`tx-${tx.id || idx}-desc`}>
+                      Description <span className="req">*</span>
+                    </label>
+                    <input
+                      id={`tx-${tx.id || idx}-desc`}
+                      type="text"
+                      maxLength={160}
+                      value={tx.description || ''}
+                      onChange={e => updateField(idx, 'description', e.target.value)}
+                      placeholder="e.g. Salary credit - Demo Technologies Pvt Ltd"
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor={`tx-${tx.id || idx}-ref`}>Chq/Ref. No.</label>
+                    <input
+                      id={`tx-${tx.id || idx}-ref`}
+                      type="text"
+                      maxLength={30}
+                      value={tx.reference || ''}
+                      onChange={e => updateField(idx, 'reference', e.target.value)}
+                      placeholder="Demo reference"
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor={`tx-${tx.id || idx}-amt`}>
+                      Amount ({cur}) <span className="req">*</span>
+                    </label>
+                    <input
+                      id={`tx-${tx.id || idx}-amt`}
+                      type="text"
+                      inputMode="decimal"
+                      value={tx.amount || ''}
+                      onChange={e => updateField(idx, 'amount', e.target.value)}
+                      onBlur={e => handleAmountBlur(idx, e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              icon={ICONS.plus}
+              onClick={handleAddTransaction}
+              className="w-full mt-3 font-semibold"
+            >
+              + Add next transaction
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Informational / Status Notice */}
       {msg && (
         <div className={`mt-3 alert ${msg.tone}`} role="status">
           <div className="alert-row">
             <span>{msg.text}</span>
-            <button type="button" className="link" onClick={() => setMsg(null)} aria-label="Dismiss message">Dismiss</button>
+            <button
+              type="button"
+              className="link"
+              onClick={() => setMsg(null)}
+              aria-label="Dismiss message"
+            >
+              Dismiss
+            </button>
           </div>
         </div>
       )}

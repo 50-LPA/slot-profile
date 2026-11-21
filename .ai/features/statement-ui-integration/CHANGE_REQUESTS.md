@@ -379,6 +379,25 @@ This section collects and documents the batch of 13 upcoming change requests wit
 - **Proposed Solution**:
   - Update `accountType` configuration in `AccountForm.jsx` from `datalist: ACCOUNT_TYPES` to `select: ACCOUNT_TYPES`.
 - **Status**: **APPROVED & IMPLEMENTED**
+
+---
+
+### [CR-023] (Item 17): Dynamic Multi-Record Transaction Form Cards with Insert & Remove Controls
+- **Component**: `src/statements/components/TransactionManager.jsx`
+- **User Request**: *"here make sure we crete new empty forms to again add next transions once 2nd form filled let user add more transion with new emoty fomrs, also give remove btn if user want to remove some record or add some reccord in between existing one any time user can insert any time or remove any time ! did you understood ?"*
+- **Screenshot**: `uploaded_media_1795285910119.png` (red circle around the Transactions card)
+- **Category**: Interactive Multi-Record Form Architecture
+- **Context**:
+  - The previous implementation used a single static form where transactions had to be submitted one at a time and could not be reviewed, edited in place, deleted, or re-positioned directly on the form side.
+  - Users need a repeatably extensible multi-card experience (analogous to the Resume Builder's Experience cards) where each transaction is rendered as an independent form card.
+- **Proposed Solution**:
+  1. Render each transaction in `statement.transactions` as an individual form card with index header (`Transaction #{idx + 1}`) and type badge (`Credit` / `Debit`).
+  2. Implement in-place live updating: editing any field immediately updates `statement.transactions` and updates the PDF preview in real time.
+  3. Provide `+ Insert above` and `+ Insert below` controls on every transaction card to allow inserting new empty records in between existing ones at any position.
+  4. Provide a `Remove` (trash icon) button on every transaction card to delete that specific record anytime.
+  5. Provide a prominent `+ Add next transaction` button at the bottom of the list with auto-advancing monthly dates.
+  6. When 0 transactions exist, display an empty state placeholder with an `+ Add first transaction` button.
+- **Status**: **APPROVED & IMPLEMENTED**
 ---
 
 ## Approved Design Rules
