@@ -11,7 +11,7 @@ const getGroups = account => [
     fields: [
       { k: 'bank', label: 'Bank Name', select: BANK_OPTIONS, required: true, full: true },
       { k: 'accountNumber', label: 'Account number', required: true, inputMode: 'numeric', placeholder: 'e.g. 00001234567890', hint: 'Use a demo number.' },
-      { k: 'accountType', label: 'Account type', datalist: ACCOUNT_TYPES, placeholder: 'Savings / Current' },
+      { k: 'accountType', label: 'Account type', select: ACCOUNT_TYPES },
       { k: 'branch', label: 'Branch', placeholder: 'e.g. Baner, Pune' },
       { k: 'accountStatus', label: 'Account status', select: ACCOUNT_STATUSES },
       { k: 'nomination', label: 'Nominee registered', type: 'toggle', options: NOMINATION_OPTIONS },

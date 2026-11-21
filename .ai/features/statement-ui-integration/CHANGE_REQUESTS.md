@@ -366,6 +366,19 @@ This section collects and documents the batch of 13 upcoming change requests wit
   4. Lock manual transactions strictly to `type: 'credit'`.
   5. Symmetrically structure the form grid with a full-width "Add credit transaction" button.
 - **Status**: **APPROVED & IMPLEMENTED**
+
+---
+
+### [CR-022] (Item 16): Convert "Account Type" to Select Dropdown
+- **Component**: `src/statements/components/AccountForm.jsx`
+- **User Request**: *"Account type shold be dropdown"*
+- **Category**: Form Field Input Enhancement
+- **Context**:
+  - `accountType` was previously rendered as an `<input list="...">` via `datalist: ACCOUNT_TYPES`.
+  - While datalists provide typing suggestions, users prefer an explicit `<select>` dropdown menu with defined options (`Savings`, `Current`, `Salary`, `NRE Savings`, `NRO Savings`, `Overdraft`) consistent with `bank` and `accountStatus`.
+- **Proposed Solution**:
+  - Update `accountType` configuration in `AccountForm.jsx` from `datalist: ACCOUNT_TYPES` to `select: ACCOUNT_TYPES`.
+- **Status**: **APPROVED & IMPLEMENTED**
 ---
 
 ## Approved Design Rules
