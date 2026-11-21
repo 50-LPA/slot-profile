@@ -9,6 +9,7 @@ import DatePicker from './DatePicker.jsx';
 
 export default function TransactionManager({ statement, onTransactions, onAccount, onUpdateStatement }) {
   const txns = statement.transactions || [];
+  const cur = statement.account?.currency || 'INR';
 
   const [msg, setMsg] = useState(null);
   const [fillingGaps, setFillingGaps] = useState(false);
