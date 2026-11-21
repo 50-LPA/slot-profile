@@ -129,14 +129,42 @@ test('CSV export round-trips through import and guards against formulas', () => 
   ]);
 });
 
-test('demo data is valid and stays inside its period', () => {
-  const d = demoStatement(new Date(2026, 10, 12));
+test('demo data is valid and stays inside its period for Kotak Mahindra Bank', () => {
+  const d = demoStatement(new Date(2026, 10, 12), 'Kotak Mahindra Bank');
+  assert.equal(d.bank, 'Kotak Mahindra Bank');
+  assert.equal(d.account.bank, 'Kotak Mahindra Bank');
+  assert.equal(d.account.ifsc, 'DEMO0000123');
+  assert.equal(d.account.micr, '999999123');
+  assert.equal(d.account.branch, 'Demo Branch – Baner, Pune');
   assert.deepEqual(validateAccount(d.account), {});
   const c = compute(d);
   assert.equal(c.count, d.transactions.length);
   assert.ok(c.count > 50);
   assert.equal(d.account.periodStart, '2026-08-01');
   assert.equal(d.account.periodEnd, '2026-10-31');
+  assert.equal(c.closing, c.lines.at(-1).balance);
+  assert.ok(d.transactions.every(t => t.reference.startsWith('DM')));
+});
+
+test('demo data is valid and stays inside its period for HDFC Bank', () => {
+  const d = demoStatement(new Date(2026, 10, 12), 'HDFC Bank');
+  assert.equal(d.bank, 'HDFC Bank');
+  assert.equal(d.account.bank, 'HDFC Bank');
+  assert.equal(d.account.ifsc, 'HDFC0000794');
+  assert.equal(d.account.micr, '411240018');
+  assert.equal(d.account.branch, 'HINJAWADI');
+  assert.equal(d.account.accountStatus, 'Regular');
+  assert.deepEqual(validateAccount(d.account), {});
+  const c = compute(d);
+  assert.equal(c.count, d.transactions.length);
+  assert.ok(c.count > 50);
+  assert.equal(d.account.periodStart, '2026-08-01');
+  assert.equal(d.account.periodEnd, '2026-10-31');
+  assert.equal(c.closing, c.lines.at(-1).balance);
+  // HDFC transactions should use 16-digit reference numbers
+  assert.ok(d.transactions.every(t => /^\d{16}$/.test(t.reference)));
+  // HDFC transactions should contain authentic HDFC UPI / NEFT narrations
+  assert.ok(d.transactions.some(t => t.description.includes('UPI-') || t.description.includes('NEFT CR-')));
 });
 
 test('account number is masked to the last 4 digits', () => {

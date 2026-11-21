@@ -589,6 +589,22 @@ This section collects and documents the batch of 13 upcoming change requests wit
   3. **Action-Oriented Header**: Added direct `Open JSON` and `Save JSON` action buttons in `Editor.jsx` along with `Load demo` and `Clear`, allowing instant export and import of statement data files alongside live PDF generation.
   4. **Dynamic Header Title**: Header now displays `Create Statement` when empty or `Statement – <Account Holder>` when filled.
 - **Status**: **APPROVED & FULLY IMPLEMENTED**
+
+---
+
+### [CR-034]: Bank Workspace Isolation and Bank-Specific Demo Statement Generation
+- **Components**: `src/statements/App.jsx`, `src/statements/components/Editor.jsx`, `src/statements/lib/demo.js`, `src/statements/statement-logic.test.js`
+- **User Request**: *"by switching banks we should not move one banks data into another and also load demo should load respective selected bank !"*
+- **Category**: Data Isolation / Workspace Architecture & Bank Parity
+- **Context**:
+  - Previously, switching the bank dropdown in `AccountForm.jsx` simply mutated the `account.bank` field on the existing statement object, causing Kotak metadata (IFSC `DEMO0000123`, MICR `999999123`, 14-digit account number, branch, and `DM...` transaction references) to bleed into the HDFC template, or vice versa.
+  - Furthermore, clicking "Load demo" always invoked `demoStatement()` without arguments, loading Kotak demo data regardless of the currently active bank.
+- **Implementation**:
+  1. **Bank Workspace Isolation (`App.jsx`)**: Maintained independent isolated statements in `bankStores` keyed by bank name (`'Kotak Mahindra Bank'` and `'HDFC Bank'`). Switching banks via `handleSwitchBank` switches the active bank workspace without transferring or corrupting data across banks.
+  2. **Interception of Bank Switches in Editor (`Editor.jsx`)**: In `setAccount` and `updateStatement`, isolated bank dropdown changes trigger `onSwitchBank(patch.bank)` instead of modifying the existing statement object in place.
+  3. **Bank-Aware Demo Generation (`demo.js` & `Editor.jsx`)**: `demoStatement(today, bank)` produces authentic bank-specific datasets. For HDFC, it generates authentic HDFC narrations (`UPI-...-PAYMENT`, `NEFT CR-...`, `ACH D-...`), 16-digit reference numbers (`0000...`), HDFC IFSC (`HDFC0000794`), MICR (`411240018`), and branch (`HINJAWADI`). In `Editor.jsx`, `loadDemo()` and `resetForm()` read and preserve the currently active bank.
+  4. **Unit Verification (`statement-logic.test.js`)**: Added test coverage verifying that both Kotak and HDFC demo statements generate authentic bank-specific metadata, references, valid periods, and mathematically reconciled ledgers.
+- **Status**: **APPROVED & FULLY IMPLEMENTED**
 ---
 
 ## Approved Design Rules

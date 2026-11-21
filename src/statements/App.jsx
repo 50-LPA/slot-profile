@@ -5,15 +5,58 @@ import { loadAll, saveAll } from './lib/storage.js';
 import { Page } from '../ui.jsx';
 import './styles.css';
 
+const normalizeBankName = bank => (String(bank || '').toLowerCase().includes('hdfc') ? 'HDFC Bank' : 'Kotak Mahindra Bank');
+
 export default function App() {
-  // Directly opens the statement editor with active in-memory statement (demo by default).
-  const [statement, setStatement] = useState(() => loadAll()[0] || demoStatement());
+  const [activeBank, setActiveBank] = useState('Kotak Mahindra Bank');
+  const [bankStores, setBankStores] = useState(() => {
+    const loaded = loadAll();
+    const kotakLoaded = loaded.find(s => s.bank === 'Kotak Mahindra Bank' || s.account?.bank === 'Kotak Mahindra Bank');
+    const hdfcLoaded = loaded.find(s => s.bank === 'HDFC Bank' || s.account?.bank === 'HDFC Bank');
+    return {
+      'Kotak Mahindra Bank': kotakLoaded || demoStatement(new Date(), 'Kotak Mahindra Bank'),
+      'HDFC Bank': hdfcLoaded || demoStatement(new Date(), 'HDFC Bank'),
+    };
+  });
   const [savedAt, setSavedAt] = useState(null);
 
-  const handleChange = useCallback(st => {
-    const next = { ...st, updatedAt: Date.now() };
-    setStatement(next);
-    saveAll([next]);
+  const statement = bankStores[activeBank] || bankStores['Kotak Mahindra Bank'];
+
+  // Saves changes to the active bank's isolated statement without cross-contaminating other banks
+  const handleChange = useCallback((st, explicitBank = null) => {
+    const bankKey = normalizeBankName(explicitBank || st.account?.bank || st.bank || activeBank);
+    const updatedSt = {
+      ...st,
+      bank: bankKey,
+      account: { ...st.account, bank: bankKey },
+      updatedAt: Date.now(),
+    };
+
+    setBankStores(prev => {
+      const next = { ...prev, [bankKey]: updatedSt };
+      saveAll(Object.values(next));
+      return next;
+    });
+
+    if (bankKey !== activeBank) {
+      setActiveBank(bankKey);
+    }
+    setSavedAt(new Date());
+  }, [activeBank]);
+
+  // Switches active bank without moving the previous bank's data into the new bank
+  const handleSwitchBank = useCallback(newBank => {
+    const bankKey = normalizeBankName(newBank);
+    setBankStores(prev => {
+      if (!prev[bankKey]) {
+        return {
+          ...prev,
+          [bankKey]: demoStatement(new Date(), bankKey),
+        };
+      }
+      return prev;
+    });
+    setActiveBank(bankKey);
     setSavedAt(new Date());
   }, []);
 
@@ -23,6 +66,7 @@ export default function App() {
         <Editor
           statement={statement}
           onChange={handleChange}
+          onSwitchBank={handleSwitchBank}
           savedAt={savedAt}
           onBack={null}
         />

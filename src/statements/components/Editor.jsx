@@ -13,7 +13,7 @@ import { Icon, ICONS } from '../../icons.jsx';
 import { confirmAsk, toast } from '../../toast.jsx';
 
 // Layout: responsive two-column grid inside Card. Left side scrolls naturally, right side PDF preview sticks to top.
-export default function Editor({ statement, onChange, savedAt, onBack }) {
+export default function Editor({ statement, onChange, onSwitchBank, savedAt, onBack }) {
   const computed = useMemo(() => compute(statement), [statement]);
   const errors = useMemo(() => validateAccount(statement.account), [statement.account]);
   const errorCount = Object.keys(errors).length;
@@ -22,10 +22,24 @@ export default function Editor({ statement, onChange, savedAt, onBack }) {
   const [notice, setNotice] = useState(null);
   const a = statement.account;
 
-  const setAccount = patch => onChange({ ...statement, account: { ...statement.account, ...patch } });
+  const setAccount = patch => {
+    if (patch.bank && patch.bank !== (a.bank || statement.bank) && Object.keys(patch).length === 1 && onSwitchBank) {
+      onSwitchBank(patch.bank);
+      return;
+    }
+    onChange({ ...statement, account: { ...statement.account, ...patch } });
+  };
   const setTransactions = next =>
     onChange({ ...statement, transactions: typeof next === 'function' ? next(statement.transactions) : next });
   const updateStatement = patch => {
+    const nextBank = patch.bank || patch.account?.bank;
+    const isBankSwitchOnly = nextBank && nextBank !== (a.bank || statement.bank) && !patch.transactions && Object.keys(patch.account || {}).length <= 1;
+
+    if (isBankSwitchOnly && onSwitchBank) {
+      onSwitchBank(nextBank);
+      return;
+    }
+
     const next = { ...statement };
     if (patch.bank) next.bank = patch.bank;
     if (patch.account) {
@@ -35,7 +49,7 @@ export default function Editor({ statement, onChange, savedAt, onBack }) {
     if (patch.transactions !== undefined) {
       next.transactions = typeof patch.transactions === 'function' ? patch.transactions(statement.transactions) : patch.transactions;
     }
-    onChange(next);
+    onChange(next, nextBank);
   };
 
   async function handleSeedReplace(txs, meta = {}) {
@@ -118,9 +132,10 @@ export default function Editor({ statement, onChange, savedAt, onBack }) {
       });
       if (!ok) return;
     }
-    const demo = demoStatement();
-    onChange({ ...statement, account: demo.account, transactions: demo.transactions });
-    const text = 'Demo data loaded (fictional person, ~60 transactions).';
+    const currentBank = a.bank || statement.bank || 'Kotak Mahindra Bank';
+    const demo = demoStatement(new Date(), currentBank);
+    onChange({ ...statement, bank: demo.bank, account: demo.account, transactions: demo.transactions });
+    const text = `${demo.bank} demo data loaded (~60 transactions).`;
     setNotice({ tone: 'ok', text });
     toast(text);
   }
@@ -133,7 +148,10 @@ export default function Editor({ statement, onChange, savedAt, onBack }) {
       danger: true,
     });
     if (!ok) return;
-    onChange({ ...statement, account: blankAccount(), transactions: [] });
+    const currentBank = a.bank || statement.bank || 'Kotak Mahindra Bank';
+    const blank = blankAccount();
+    blank.bank = currentBank;
+    onChange({ ...statement, bank: currentBank, account: blank, transactions: [] });
     setShowAllErrors(false);
     const text = 'Statement form cleared.';
     setNotice({ tone: 'ok', text });
