@@ -6,12 +6,20 @@ import HdfcStatementDocument from './HdfcStatementDocument.jsx';
 // Kotak Mahindra Bank branding
 const INSTITUTION = 'Kotak Mahindra Bank';
 
+const resolveAsset = rel => {
+  const url = new URL(rel, import.meta.url);
+  if (typeof window === 'undefined' && typeof self === 'undefined' && url.protocol === 'file:') {
+    return url.pathname;
+  }
+  return url.href;
+};
+
 // Top header banner image (Page 1)
-const LOGO_BANNER = new URL('./logos/kotak-header-banner.png', import.meta.url).href;
-const PROMO_BANNER = new URL('./logos/kotak-promo-banner.jpeg', import.meta.url).href;
-const ICON_PHONE = new URL('./logos/kotak-icon-phone.png', import.meta.url).href;
-const ICON_BRANCH = new URL('./logos/kotak-icon-branch.png', import.meta.url).href;
-const QR_SECURITY = new URL('./logos/kotak-qr-security.jpeg', import.meta.url).href;
+const LOGO_BANNER = resolveAsset('./logos/kotak-header-banner.png');
+const PROMO_BANNER = resolveAsset('./logos/kotak-promo-banner.jpeg');
+const ICON_PHONE = resolveAsset('./logos/kotak-icon-phone.png');
+const ICON_BRANCH = resolveAsset('./logos/kotak-icon-branch.png');
+const QR_SECURITY = resolveAsset('./logos/kotak-qr-security.jpeg');
 
 // Source Sans 3 (SIL OFL 1.1), authentic Kotak Mahindra Bank typeface. Vite bundles the files and
 // rewrites these URLs for the browser and the worker; react-pdf embeds only the glyphs a statement uses.
@@ -19,8 +27,8 @@ const FONT = 'Source Sans 3';
 Font.register({
   family: FONT,
   fonts: [
-    { src: new URL('./fonts/SourceSans3-Regular.ttf', import.meta.url).href },
-    { src: new URL('./fonts/SourceSans3-SemiBold.ttf', import.meta.url).href, fontWeight: 'bold' },
+    { src: resolveAsset('./fonts/SourceSans3-Regular.ttf') },
+    { src: resolveAsset('./fonts/SourceSans3-SemiBold.ttf'), fontWeight: 'bold' },
   ],
 });
 
@@ -99,7 +107,7 @@ const s = StyleSheet.create({
   // anchored from the top (A4 = 841.89pt tall): bottom-anchored fixed elements are not drawn by react-pdf
   footer: {
     position: 'absolute', top: 816, left: 36, right: 36, lineHeight: 1.2,
-    flexDirection: 'row', justifyContent: 'space-between', fontSize: 9.6, color: C.muted,
+    flexDirection: 'row', justifyContent: 'space-between', fontSize: 9.6, color: C.muted, fontFamily: FONT,
   },
 
   // Page 2+ continuation header (top-left)
@@ -159,26 +167,26 @@ const s = StyleSheet.create({
     width: 237.73, paddingLeft: 12, height: 33, justifyContent: 'center', borderRightWidth: 0.25, borderRightColor: '#ffffff',
   },
   summaryThBalance: {
-    width: 142.64, paddingRight: 12, height: 33, justifyContent: 'center', alignItems: 'flex-end', borderRightWidth: 0.25, borderRightColor: '#ffffff',
+    width: 142.64, paddingLeft: 12, height: 33, justifyContent: 'center', borderRightWidth: 0.25, borderRightColor: '#ffffff',
   },
   summaryThBalanceLast: {
-    width: 142.63, paddingRight: 12, height: 33, justifyContent: 'center', alignItems: 'flex-end',
+    width: 142.63, paddingLeft: 12, height: 33, justifyContent: 'center',
   },
   summaryTr: {
     flexDirection: 'row', borderBottomWidth: 0.25, borderBottomColor: C.line, height: 13.68, alignItems: 'center',
   },
   summaryTdParticulars: {
-    width: 237.73, paddingLeft: 12, fontSize: 7.68, color: C.ink,
+    width: 237.73, paddingLeft: 3, fontSize: 7.68, color: C.ink,
   },
   summaryTdBalance: {
-    width: 142.64, paddingRight: 12, textAlign: 'right', fontSize: 7.68, color: C.ink,
+    width: 142.64, paddingRight: 28, textAlign: 'right', fontSize: 7.68, color: C.ink,
   },
   summaryTdBalanceLast: {
-    width: 142.63, paddingRight: 12, textAlign: 'right', fontSize: 7.68, color: C.ink,
+    width: 142.63, paddingRight: 28, textAlign: 'right', fontSize: 7.68, color: C.ink,
   },
 
   endBlock: {
-    marginTop: 78, alignItems: 'center',
+    marginTop: 82, alignItems: 'center',
   },
   endTitle: {
     fontSize: 12.0, color: C.ink, marginBottom: 5,
@@ -191,11 +199,11 @@ const s = StyleSheet.create({
   },
 
   promoBanner: {
-    marginTop: 26, width: 523, height: 86.3,
+    marginTop: 24, width: 523, height: 86.3,
   },
 
   assistanceSec: {
-    marginTop: 185,
+    marginTop: 170,
   },
   assistanceBody: {
     flexDirection: 'row', paddingTop: 10, paddingBottom: 10,

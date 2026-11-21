@@ -516,6 +516,25 @@ This section collects and documents the batch of 13 upcoming change requests wit
   2. Removed unused `handleInsertAt` helper from `TransactionManager.jsx`.
   3. Simplified the card header to: `Salary Transaction #{idx + 1}` & `Credit` badge on the left, and the delete trash icon button on the right.
 - **Status**: **APPROVED & FULLY IMPLEMENTED**
+
+---
+
+### [CR-030]: Summary Page Alignment & Overflow Safeguards (Authentic Kotak Spec)
+- **Component**: `src/statements/pdf/StatementDocument.jsx`
+- **User Request**: *"6 │ Summary page layout & order / work on this !!! plase check original for reference and fix , then compare again"*
+- **Category**: PDF Spec Alignment / Visual Accuracy
+- **Authentic Kotak Reference Analysis**:
+  - Investigated `AccountStatement_01-Nov-2026_11-Nov-2026.pdf` (Page 6).
+  - In authentic Kotak statements, the Account Summary table headers (`Particulars`, `Opening Balance`, `Closing Balance`) are all **left-aligned** with `paddingLeft: 12` inside their respective grey header cells (`#5f6b77`), rather than right-aligned.
+  - The transaction account values are positioned with `paddingLeft: 3` (`Savings Account (SA):`) and `paddingRight: 28` for amounts (`Opening Balance` & `Closing Balance`).
+  - Spacing between Promo Banner (`Hausla hai toh ho jayega`) and Assistance section (`For assistance, reach out to us at:`) in authentic PDF is exactly `171 pt`.
+- **Implementation**:
+  1. **Aligned Headers**: Updated `summaryThBalance` and `summaryThBalanceLast` to `paddingLeft: 12, justifyContent: 'center'` matching `summaryThParticulars`.
+  2. **Aligned Balances**: Adjusted `summaryTdParticulars` to `paddingLeft: 3` and `summaryTdBalance` / `summaryTdBalanceLast` to `paddingRight: 28` for pixel-accurate alignment under column headers.
+  3. **Overflow Protection**: Set `assistanceSec` `marginTop: 170` (was 185) to mirror authentic 171 pt spacing while providing ample vertical clearance to prevent any accidental page spill.
+  4. **Font Consistency**: Enforced `fontFamily: FONT` on `footer` style.
+  5. **Isomorphic Asset Loader**: Added `resolveAsset` to handle Node and browser URL schemes without breaking.
+- **Status**: **APPROVED & FULLY IMPLEMENTED**
 ---
 
 ## Approved Design Rules
