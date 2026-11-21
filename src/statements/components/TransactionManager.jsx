@@ -212,7 +212,7 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
             title="Add a new transaction form"
             className="h-8 px-2.5 font-bold text-emerald-700 hover:bg-emerald-50"
           >
-            + Add transaction
+            Add transaction
           </Button>
           <Button
             size="sm"

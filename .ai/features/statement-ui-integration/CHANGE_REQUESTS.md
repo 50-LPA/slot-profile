@@ -424,6 +424,10 @@ This section collects and documents the batch of 13 upcoming change requests wit
      - Opening Balance: `8,729.00`
      - Total Extracted Transactions: `958` (45 credits totaling `₹10,45,180.13`, 913 debits totaling `₹7,44,340.75`).
      - Computed Closing Balance: `₹3,09,568.38` (matches final statement balance to the exact paise; 0 invalid, 0 out-of-period, 0 negative balances).
+  5. **Browser PDF.js Worker Configuration & File Input Architecture**:
+     - Configured explicit `pdfjs.GlobalWorkerOptions.workerSrc` via `pdfjs-dist/build/pdf.worker.min.mjs?url` in `AccountForm.jsx` and `pdfParser.js` to eliminate browser-side `No "GlobalWorkerOptions.workerSrc" specified` runtime exceptions.
+     - Extracted the hidden `<input type="file">` outside the fieldset `<legend>` directly into the root form to prevent DOM click capture conflicts.
+     - Updated `Editor.jsx`'s `updateStatement` to propagate imported `bank` from `account.bank` to the statement root.
 - **Status**: **APPROVED & FULLY VERIFIED**
 ---
 

@@ -1,9 +1,15 @@
 import { useRef, useState } from 'react';
+import * as pdfjs from 'pdfjs-dist';
+import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { ACCOUNT_STATUSES, ACCOUNT_TYPES, BANK_OPTIONS, NOMINATION_OPTIONS, TITLES, normalizeStatement } from '../lib/model.js';
 import { parseStatementPdf } from '../lib/pdfParser.js';
 import { Button } from '../../ui.jsx';
 import { ICONS } from '../../icons.jsx';
 import DatePicker from './DatePicker.jsx';
+
+if (typeof window !== 'undefined' && pdfjs?.GlobalWorkerOptions) {
+  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+}
 
 const getGroups = account => [
   {
@@ -82,7 +88,7 @@ export default function AccountForm({ account, errors, showAllErrors, onChange, 
     setImportingPdf(true);
     try {
       if (file.size > 20_000_000) throw new Error('File exceeds 20 MB limit.');
-      const parsed = await parseStatementPdf(file);
+      const parsed = await parseStatementPdf(file, { workerUrl });
       if (!parsed || !parsed.account) throw new Error('No valid account details found in the PDF.');
 
       const normalized = normalizeStatement({
@@ -92,6 +98,7 @@ export default function AccountForm({ account, errors, showAllErrors, onChange, 
 
       if (onImportStatement) {
         onImportStatement({
+          bank: normalized.bank,
           account: normalized.account,
           transactions: normalized.transactions,
         });
@@ -120,19 +127,19 @@ export default function AccountForm({ account, errors, showAllErrors, onChange, 
 
   return (
     <form className="panel" noValidate onSubmit={e => e.preventDefault()} aria-label="Account details">
+      <input
+        ref={pdfInputRef}
+        type="file"
+        accept=".pdf,application/pdf"
+        style={{ display: 'none' }}
+        onChange={handlePdfFileChange}
+      />
       {groups.map(group => (
         <fieldset key={group.title} className="group">
           <legend className="st-group-legend">
             <span>{group.title}</span>
             {group.title === 'Bank & Account' && onImportStatement && (
               <div className="flex items-center">
-                <input
-                  ref={pdfInputRef}
-                  type="file"
-                  accept=".pdf,application/pdf"
-                  style={{ display: 'none' }}
-                  onChange={handlePdfFileChange}
-                />
                 <Button
                   type="button"
                   size="sm"

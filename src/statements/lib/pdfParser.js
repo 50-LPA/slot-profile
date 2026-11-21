@@ -425,7 +425,7 @@ export function parseStatementText(fullTextOrLines) {
 /**
  * Client-side parser for PDF files or ArrayBuffers using pdfjs-dist.
  */
-export async function parseStatementPdf(fileOrBuffer) {
+export async function parseStatementPdf(fileOrBuffer, options = {}) {
   let arrayBuffer;
   if (fileOrBuffer instanceof ArrayBuffer) {
     arrayBuffer = fileOrBuffer;
@@ -447,6 +447,20 @@ export async function parseStatementPdf(fileOrBuffer) {
       if (legacy && legacy.getDocument) pdfjsLib = legacy;
     } catch {
       // ignore
+    }
+  } else {
+    // In Browser environments, ensure workerSrc is explicitly configured
+    if (options.workerUrl && pdfjsLib.GlobalWorkerOptions) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = options.workerUrl;
+    } else if (pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+      try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+          'pdfjs-dist/build/pdf.worker.min.mjs',
+          import.meta.url
+        ).toString();
+      } catch {
+        // ignore
+      }
     }
   }
 

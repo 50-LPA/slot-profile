@@ -26,7 +26,11 @@ export default function Editor({ statement, onChange, savedAt, persistent, onBac
     onChange({ ...statement, transactions: typeof next === 'function' ? next(statement.transactions) : next });
   const updateStatement = patch => {
     const next = { ...statement };
-    if (patch.account) next.account = { ...statement.account, ...patch.account };
+    if (patch.bank) next.bank = patch.bank;
+    if (patch.account) {
+      next.account = { ...statement.account, ...patch.account };
+      if (patch.account.bank) next.bank = patch.account.bank;
+    }
     if (patch.transactions !== undefined) {
       next.transactions = typeof patch.transactions === 'function' ? patch.transactions(statement.transactions) : patch.transactions;
     }
