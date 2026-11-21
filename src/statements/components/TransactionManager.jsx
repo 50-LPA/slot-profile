@@ -54,37 +54,6 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
     setMsg({ tone: 'ok', text: `Created salary transaction #${salaryTxns.length + 1}.` });
   }
 
-  // Inserts a new empty salary transaction form in between existing records at targetIndex
-  function handleInsertAt(targetIndex) {
-    let baseDate = statement.account?.periodStart || todayISO();
-    if (targetIndex > 0 && salaryTxns[targetIndex - 1]?.date) {
-      baseDate = salaryTxns[targetIndex - 1].date;
-    } else if (targetIndex < salaryTxns.length && salaryTxns[targetIndex]?.date) {
-      baseDate = salaryTxns[targetIndex].date;
-    }
-
-    const newTx = {
-      id: newId(),
-      date: baseDate,
-      valueDate: '',
-      description: 'Salary credit',
-      reference: '',
-      amount: '',
-      type: 'credit',
-    };
-
-    onTransactions(list => {
-      if (targetIndex >= salaryTxns.length) {
-        return [...list, newTx];
-      }
-      const anchorId = salaryTxns[targetIndex]?.id;
-      const globalIdx = list.findIndex(t => t.id === anchorId);
-      if (globalIdx === -1) return [...list, newTx];
-      return [...list.slice(0, globalIdx), newTx, ...list.slice(globalIdx)];
-    });
-    setMsg({ tone: 'ok', text: `Inserted empty salary transaction at position #${targetIndex + 1}.` });
-  }
-
   // Removes a salary transaction record by unique ID
   function handleRemove(targetId) {
     const removed = txns.find(t => t.id === targetId);
@@ -244,37 +213,15 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
                       Credit
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="plain"
-                      onClick={() => handleInsertAt(idx)}
-                      title="Insert empty salary transaction above"
-                      className="h-6 px-1.5 text-[11px] text-gray-600 hover:text-emerald-700 hover:bg-emerald-50"
-                    >
-                      + Insert above
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="plain"
-                      onClick={() => handleInsertAt(idx + 1)}
-                      title="Insert empty salary transaction below"
-                      className="h-6 px-1.5 text-[11px] text-gray-600 hover:text-emerald-700 hover:bg-emerald-50"
-                    >
-                      + Insert below
-                    </Button>
-                    <button
-                      type="button"
-                      onClick={() => handleRemove(tx.id)}
-                      title="Remove this salary transaction"
-                      className="inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer transition-colors ml-0.5"
-                      aria-label={`Remove salary transaction ${idx + 1}`}
-                    >
-                      <Icon d={ICONS.trash} className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(tx.id)}
+                    title="Remove this salary transaction"
+                    className="inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer transition-colors"
+                    aria-label={`Remove salary transaction ${idx + 1}`}
+                  >
+                    <Icon d={ICONS.trash} className="h-3.5 w-3.5" />
+                  </button>
                 </div>
 
                 {/* Form Grid */}

@@ -500,6 +500,22 @@ This section collects and documents the batch of 13 upcoming change requests wit
   2. **Clean Grid Pairing**: Paired the two primary fields `Transaction date *` (left) and `Amount ({cur}) *` (right) symmetrically in Row 1, followed by `Description *` and `Chq/Ref. No.` full width.
   3. **Zero Loss Fallback**: Preserved existing model and PDF fallback behavior (`t.valueDate || t.date`).
 - **Status**: **APPROVED & FULLY IMPLEMENTED**
+
+---
+
+### [CR-029]: Removal of "+ Insert above" and "+ Insert below" Buttons from Salary Cards
+- **Component**: `src/statements/components/TransactionManager.jsx`
+- **User Request**: *"remove insert above and below btns"*
+- **Category**: UI De-clutter / Action Streamlining
+- **Context**:
+  - Each individual salary card header had two inline buttons: `+ Insert above` and `+ Insert below`.
+  - For salary credits, chronological transactions are cleanly appended via the main `Add transaction` / `+ Add next salary transaction` buttons, which automatically advance the date by one month.
+  - Having two insert buttons on every single salary card added unnecessary visual noise to the header.
+- **Implementation**:
+  1. Removed `+ Insert above` and `+ Insert below` buttons from the salary transaction card header.
+  2. Removed unused `handleInsertAt` helper from `TransactionManager.jsx`.
+  3. Simplified the card header to: `Salary Transaction #{idx + 1}` & `Credit` badge on the left, and the delete trash icon button on the right.
+- **Status**: **APPROVED & FULLY IMPLEMENTED**
 ---
 
 ## Approved Design Rules
