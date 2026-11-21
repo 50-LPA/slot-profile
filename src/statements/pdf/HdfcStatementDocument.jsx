@@ -1,15 +1,7 @@
 import { Document, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 import { fmtHdfcDate, fmtHdfcFullDate, fmtHdfcTimestamp, money } from '../lib/format.js';
 
-const resolveAsset = rel => {
-  const url = new URL(rel, import.meta.url);
-  if (typeof window === 'undefined' && typeof self === 'undefined' && url.protocol === 'file:') {
-    return url.pathname;
-  }
-  return url.href;
-};
-
-const HDFC_LOGO = resolveAsset('./logos/hdfc-logo.jpeg');
+const HDFC_LOGO = new URL('./logos/hdfc-logo.jpeg', import.meta.url).href;
 
 const FONT = 'Times-Roman';
 const FONT_BOLD = 'Times-Bold';

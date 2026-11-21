@@ -621,6 +621,23 @@ This section collects and documents the batch of 13 upcoming change requests wit
   3. **Cleaned Header Actions**: Retained only `Load demo` and `Clear` in the `CardHeader` actions slot.
   4. **Verified Zero LocalStorage**: Confirmed 100% in-memory statement operation (`storage.js`) with zero `localStorage` calls across statement workflows.
 - **Status**: **APPROVED & FULLY IMPLEMENTED**
+
+---
+
+### [CR-036]: Vite Static Asset Invariant for Production Font & Logo Bundling
+- **Components**: `src/statements/pdf/StatementDocument.jsx`, `src/statements/pdf/HdfcStatementDocument.jsx`
+- **User Report**: *"Could not render the preview: Failed to fetch font from https://slot-profile.netlify.app/assets/fonts/SourceSans3-SemiBold.ttf: 404"*
+- **Category**: Production Build Asset Pipeline / Vite Static Analysis
+- **Context**:
+  - In production deployment (Netlify), opening the Statement preview threw `Failed to fetch font from https://slot-profile.netlify.app/assets/fonts/SourceSans3-SemiBold.ttf: 404`.
+  - `resolveAsset(rel)` called `new URL(rel, import.meta.url)` dynamically through a parameter.
+  - Vite's asset parser requires static string literals directly inside `new URL('...', import.meta.url)` to identify assets at compile time, copy them into `dist/assets/`, hash them, and rewrite URLs.
+  - Because `rel` was a variable, Vite skipped bundling `SourceSans3-*.ttf` and logos into `dist/assets/`, resulting in 404s when the Web Worker ran on Netlify.
+- **Implementation**:
+  1. Replaced `resolveAsset(rel)` with direct static `new URL('./fonts/SourceSans3-Regular.ttf', import.meta.url).href` and `new URL('./fonts/SourceSans3-SemiBold.ttf', import.meta.url).href` in `StatementDocument.jsx`.
+  2. Replaced `resolveAsset(rel)` with direct static `new URL('./logos/...', import.meta.url).href` for all banner and logo assets in `StatementDocument.jsx` and `HdfcStatementDocument.jsx`.
+  3. Verified production build: Vite now detects and outputs `dist/assets/SourceSans3-Regular-*.ttf`, `dist/assets/SourceSans3-SemiBold-*.ttf`, and all logos.
+- **Status**: **APPROVED & FULLY IMPLEMENTED**
 ---
 
 ## Approved Design Rules

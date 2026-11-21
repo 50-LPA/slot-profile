@@ -6,20 +6,12 @@ import HdfcStatementDocument from './HdfcStatementDocument.jsx';
 // Kotak Mahindra Bank branding
 const INSTITUTION = 'Kotak Mahindra Bank';
 
-const resolveAsset = rel => {
-  const url = new URL(rel, import.meta.url);
-  if (typeof window === 'undefined' && typeof self === 'undefined' && url.protocol === 'file:') {
-    return url.pathname;
-  }
-  return url.href;
-};
-
 // Top header banner image (Page 1)
-const LOGO_BANNER = resolveAsset('./logos/kotak-header-banner.png');
-const PROMO_BANNER = resolveAsset('./logos/kotak-promo-banner.jpeg');
-const ICON_PHONE = resolveAsset('./logos/kotak-icon-phone.png');
-const ICON_BRANCH = resolveAsset('./logos/kotak-icon-branch.png');
-const QR_SECURITY = resolveAsset('./logos/kotak-qr-security.jpeg');
+const LOGO_BANNER = new URL('./logos/kotak-header-banner.png', import.meta.url).href;
+const PROMO_BANNER = new URL('./logos/kotak-promo-banner.jpeg', import.meta.url).href;
+const ICON_PHONE = new URL('./logos/kotak-icon-phone.png', import.meta.url).href;
+const ICON_BRANCH = new URL('./logos/kotak-icon-branch.png', import.meta.url).href;
+const QR_SECURITY = new URL('./logos/kotak-qr-security.jpeg', import.meta.url).href;
 
 // Source Sans 3 (SIL OFL 1.1), authentic Kotak Mahindra Bank typeface. Vite bundles the files and
 // rewrites these URLs for the browser and the worker; react-pdf embeds only the glyphs a statement uses.
@@ -27,8 +19,8 @@ const FONT = 'Source Sans 3';
 Font.register({
   family: FONT,
   fonts: [
-    { src: resolveAsset('./fonts/SourceSans3-Regular.ttf') },
-    { src: resolveAsset('./fonts/SourceSans3-SemiBold.ttf'), fontWeight: 'bold' },
+    { src: new URL('./fonts/SourceSans3-Regular.ttf', import.meta.url).href },
+    { src: new URL('./fonts/SourceSans3-SemiBold.ttf', import.meta.url).href, fontWeight: 'bold' },
   ],
 });
 
