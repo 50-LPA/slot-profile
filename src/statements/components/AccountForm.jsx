@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { CURRENCIES } from '../lib/format.js';
 import { ACCOUNT_STATUSES, ACCOUNT_TYPES, BANK_OPTIONS, NOMINATION_OPTIONS, TITLES } from '../lib/model.js';
 import DatePicker from './DatePicker.jsx';
 
@@ -11,22 +10,26 @@ const getGroups = account => [
       { k: 'accountNumber', label: 'Account number', required: true, inputMode: 'numeric', placeholder: 'e.g. 00001234567890', hint: 'Use a demo number.' },
       { k: 'accountType', label: 'Account type', datalist: ACCOUNT_TYPES, placeholder: 'Savings / Current' },
       { k: 'branch', label: 'Branch', placeholder: 'e.g. Baner, Pune' },
-      { k: 'accountStatus', label: 'Account status', datalist: ACCOUNT_STATUSES, placeholder: 'Active / Dormant' },
-      { k: 'nomination', label: 'Nominee registered', datalist: NOMINATION_OPTIONS, placeholder: 'Yes / No' },
-      { k: 'currency', label: 'Currency', select: CURRENCIES },
+      { k: 'accountStatus', label: 'Account status', select: ACCOUNT_STATUSES },
+      { k: 'nomination', label: 'Nominee registered', type: 'toggle', options: NOMINATION_OPTIONS },
     ],
   },
   {
     title: 'Customer',
     fields: [
-      { k: 'title', label: 'Title', datalist: TITLES, placeholder: 'Mr / Ms / Dr' },
-      { k: 'holderName', label: 'Customer name', required: true, placeholder: 'Full name' },
-      { k: 'customerId', label: account.bank === 'HDFC Bank' ? 'Customer ID' : 'CRN', placeholder: 'e.g. 104582731', hint: 'Demo value' },
-      { k: 'address', label: 'Residential address', textarea: true, full: true, placeholder: 'House / street, area' },
+      ...(account.bank === 'HDFC Bank' ? [
+        { k: 'title', label: 'Title', select: TITLES, placeholder: 'Mr / Ms / Dr' },
+        { k: 'holderName', label: 'Customer name', required: true, placeholder: 'Full name' },
+        { k: 'customerId', label: 'Customer ID', placeholder: 'e.g. 104582731', hint: 'Demo value', full: true },
+      ] : [
+        { k: 'holderName', label: 'Customer name', required: true, placeholder: 'Full name' },
+        { k: 'customerId', label: 'CRN', placeholder: 'e.g. 104582731', hint: 'Demo value' },
+      ]),
+      { k: 'address', label: 'Street name', full: true, placeholder: 'e.g. Flat No, Street / Area' },
       { k: 'city', label: 'City', placeholder: 'e.g. Pune' },
       { k: 'pinCode', label: 'PIN code', inputMode: 'numeric', placeholder: '6 digits' },
-      { k: 'state', label: 'State', placeholder: 'e.g. Maharashtra' },
-      { k: 'country', label: 'Country', placeholder: 'e.g. India' },
+      { k: 'state', label: 'State', full: true, placeholder: 'e.g. Maharashtra' },
+      { divider: true },
       { k: 'micr', label: 'MICR', inputMode: 'numeric', placeholder: '9 digits', hint: 'Demo value' },
       { k: 'ifsc', label: 'IFSC code', upper: true, placeholder: 'DEMO0000123', hint: 'Demo value' },
     ],
@@ -74,7 +77,10 @@ export default function AccountForm({ account, errors, showAllErrors, onChange }
         <fieldset key={group.title} className="group">
           <legend>{group.title}</legend>
           <div className="st-form-grid">
-            {group.fields.map(f => {
+            {group.fields.map((f, idx) => {
+              if (f.divider) {
+                return <div key={`div-${idx}`} className="st-form-divider" role="separator" />;
+              }
               const id = `acc-${f.k}`;
               const err = (touched[f.k] || showAllErrors) && errors[f.k];
               const common = {
@@ -101,6 +107,26 @@ export default function AccountForm({ account, errors, showAllErrors, onChange }
                       />
                       <span>{f.label}</span>
                     </label>
+                  ) : f.type === 'toggle' ? (
+                    <>
+                      <label htmlFor={id} className="label">{f.label}</label>
+                      <div className="seg" role="group" aria-label={f.label}>
+                        {(f.options || ['Yes', 'No']).map(opt => {
+                          const active = (account[f.k] || 'Yes') === opt;
+                          return (
+                            <button
+                              key={opt}
+                              type="button"
+                              className={`seg-opt ${active ? 'on' : ''}`}
+                              onClick={() => onChange({ [f.k]: opt })}
+                              aria-pressed={active}
+                            >
+                              {opt}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
                   ) : (
                     <>
                       <label htmlFor={id}>

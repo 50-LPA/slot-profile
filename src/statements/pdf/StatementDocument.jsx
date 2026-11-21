@@ -324,7 +324,7 @@ export default function StatementDocument({ statement, computed, generatedAt }) 
   const addressLines = [
     ...(a.address || '').split('\n').map(l => l.trim()).filter(Boolean),
     join(' - ', a.city, a.pinCode),
-    join(' - ', a.state, a.country),
+    join(' - ', a.state, a.country || 'India'),
   ].filter(Boolean);
   const generated = fmtGenerated(generatedAt);
 

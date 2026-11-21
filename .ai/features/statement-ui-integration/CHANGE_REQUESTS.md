@@ -99,7 +99,7 @@ This section collects and documents the batch of 13 upcoming change requests wit
     ```
   - Options (`ACCOUNT_STATUSES` from `src/statements/lib/model.js`): `['Active', 'Regular', 'Dormant', 'Inactive', 'Frozen']`.
   - Ensures a native `<select>` dropdown with consistent UI, keyboard navigation, and prevents invalid status strings.
-- **Status**: **DOCUMENTED (Ready for implementation)**
+- **Status**: **APPROVED & IMPLEMENTED (Batch 1)**
 
 ### [CR-007] (Item 2/13): Convert Nominee Registered to Toggle Button
 - **Component**: `src/statements/components/AccountForm.jsx`
@@ -117,7 +117,7 @@ This section collects and documents the batch of 13 upcoming change requests wit
     - Option 1 (Segmented Yes/No Toggle): A 2-segment pill toggle (`[ Yes | No ]`) using `.seg` / `.seg-opt` (matching transaction Debit/Credit toggle) or `<Segmented />` from `src/ui.jsx`.
     - Option 2 (Switch Toggle): A boolean switch or styled toggle button that flips between "Yes" and "No".
   - Stores `'Yes'` or `'No'` into `account.nomination`, ensuring full backward compatibility with statement models, test assertions, and PDF templates.
-- **Status**: **DOCUMENTED (Ready for implementation)**
+- **Status**: **APPROVED & IMPLEMENTED (Batch 1)**
 
 ### [CR-008] (Item 3/13): Remove Currency Selector from Bank & Account Form
 - **Component**: `src/statements/components/AccountForm.jsx`
@@ -133,7 +133,7 @@ This section collects and documents the batch of 13 upcoming change requests wit
   - Preserve `account.currency = 'INR'` as an immutable default in `blankAccount()` and `normalizeStatement()` in `src/statements/lib/model.js`.
   - Financial calculations (`calc.js`), PDF document headers (`StatementDocument.jsx`, `HdfcStatementDocument.jsx`), and formatting (`format.js`) will continue seamlessly relying on `account.currency || 'INR'`.
   - Re-align remaining `Bank & Account` fields (`Nominee registered`, etc.) to maintain a clean 2-column layout.
-- **Status**: **DOCUMENTED (Ready for implementation)**
+- **Status**: **APPROVED & IMPLEMENTED (Batch 1)**
 
 ### [CR-009] (Item 4/13): Conditionally Display Customer Title for HDFC Bank Only
 - **Component**: `src/statements/components/AccountForm.jsx`
@@ -153,7 +153,7 @@ This section collects and documents the batch of 13 upcoming change requests wit
     ```
   - When Kotak is selected, omit `title` and adjust `holderName` (`Customer name *`) layout (e.g. full width or paired with CRN) so the form grid remains balanced.
   - When switching banks, preserve any existing `title` in state in case the user toggles back to HDFC.
-- **Status**: **DOCUMENTED (Ready for implementation)**
+- **Status**: **APPROVED & IMPLEMENTED (Batch 1)**
 
 ### [CR-010] (Item 5/13): Convert Residential Address to Single-Line "Street Name" Input
 - **Component**: `src/statements/components/AccountForm.jsx`
@@ -172,7 +172,7 @@ This section collects and documents the batch of 13 upcoming change requests wit
     { k: 'address', label: 'Street name', full: true, placeholder: 'e.g. Flat No, Street / Area' }
     ```
   - Keep the underlying property key as `k: 'address'` to preserve total compatibility with database persistence, validation schemas (`validate.js`), and PDF renderers (`StatementDocument.jsx`, `HdfcStatementDocument.jsx`).
-- **Status**: **DOCUMENTED (Ready for implementation)**
+- **Status**: **APPROVED & IMPLEMENTED (Batch 1)**
 
 ### [CR-011] (Item 6/13): Add Visual Separator after Customer Address (State & Country)
 - **Component**: `src/statements/components/AccountForm.jsx`
@@ -186,7 +186,7 @@ This section collects and documents the batch of 13 upcoming change requests wit
 - **Proposed Solution**:
   - Add a dedicated full-width divider line or sub-group separator in `AccountForm.jsx` right after `State` and `Country` (before `MICR` and `IFSC code`).
   - Spans full width (`grid-column: 1 / -1`) with subtle margin and border (`border-t border-gray-200`), cleanly delineating postal address details from bank branch routing codes.
-- **Status**: **DOCUMENTED (Ready for implementation)**
+- **Status**: **APPROVED & IMPLEMENTED (Batch 1)**
 
 ### [CR-012] (Item 7/13): Remove Country Input & Always Use "India" in Statement PDFs
 - **Component**: `src/statements/components/AccountForm.jsx`, `src/statements/pdf/StatementDocument.jsx`
@@ -201,7 +201,7 @@ This section collects and documents the batch of 13 upcoming change requests wit
   - In `src/statements/pdf/StatementDocument.jsx`, ensure the printed address block always defaults or renders "India" (e.g. `join(' - ', a.state, 'India')`).
   - Retain `country: 'India'` as a default invariant in `src/statements/lib/model.js` (`blankAccount`, `normalizeStatement`) so data models and existing statements remain intact.
   - Reorganize the address fields (`Street name`, `City`, `State`, `PIN code`) into a balanced 2-column layout.
-- **Status**: **DOCUMENTED (Ready for implementation)**
+- **Status**: **APPROVED & IMPLEMENTED (Batch 1)**
 
 ### [CR-013] (Item 8/13): Remove Unwanted Dashed Separator Lines in "Add Transaction" Section
 - **Components**: `src/statements/components/TransactionManager.jsx`, `src/statements/styles.css`
