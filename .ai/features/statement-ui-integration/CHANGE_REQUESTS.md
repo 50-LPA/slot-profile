@@ -573,6 +573,22 @@ This section collects and documents the batch of 13 upcoming change requests wit
      - In `Editor.jsx`, simplified the status text to clean `"Updated · <time>"` / `"Session active"`.
   4. **Unit Verification**: Added automated unit test in `statement-logic.test.js` verifying that statement storage operates purely in-memory with zero `localStorage` dependency.
 - **Status**: **APPROVED & FULLY IMPLEMENTED**
+
+---
+
+### [CR-033]: Direct Create Statement Workflow (Removal of Statement List Screen)
+- **Components**: `src/statements/App.jsx`, `src/statements/components/Editor.jsx`
+- **User Request**: *"no statement list screen also we directly go to create statement and exit with downloaded pdf"*
+- **Category**: UX Flow Simplification / Direct-to-Action
+- **Context**:
+  - Users do not need an intermediate statement list screen/table dashboard when creating statements.
+  - The tool should open directly into the statement editor and live preview, enabling users to enter details, preview, and download the finished authentic PDF statement directly.
+- **Implementation**:
+  1. **Direct Editor Landing**: Rewrote `src/statements/App.jsx` to render `<Editor>` directly on entering `#/statements`, removing the intermediate `Dashboard.jsx` list screen.
+  2. **Clean Header & Navigation**: Set `onBack={null}` on `Editor` so the card title remains dead-center without a redundant back arrow pointing to a non-existent list.
+  3. **Action-Oriented Header**: Added direct `Open JSON` and `Save JSON` action buttons in `Editor.jsx` along with `Load demo` and `Clear`, allowing instant export and import of statement data files alongside live PDF generation.
+  4. **Dynamic Header Title**: Header now displays `Create Statement` when empty or `Statement – <Account Holder>` when filled.
+- **Status**: **APPROVED & FULLY IMPLEMENTED**
 ---
 
 ## Approved Design Rules
