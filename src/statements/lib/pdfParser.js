@@ -133,17 +133,18 @@ export function extractMetadataFromText(fullText, lines = [], detectedBank = 'Ko
     if (numMatch) account.accountNumber = numMatch[0];
   }
 
-  // 2. Customer ID / CRN
+  // 2. Customer ID / CRN (handles masked like xxxxxx135 as well)
   if (isHdfc) {
-    const custIdMatch = fullText.match(/(?:Cust(?:omer)?\s*ID)\s*[:\-]?\s*(\d{6,14})/i);
+    const custIdMatch = fullText.match(/(?:Cust(?:omer)?\s*ID)\s*[:\-]?\s*([A-Za-z0-9]{6,14})/i);
     if (custIdMatch) account.customerId = custIdMatch[1];
   } else {
-    const crnMatch = fullText.match(/CRN\s*[:\-]?\s*(\d{6,14})/i);
+    const crnMatch = fullText.match(/CRN\s*[:\-]?\s*([A-Za-z0-9]+)/i);
     if (crnMatch) account.customerId = crnMatch[1];
   }
 
   // 3. Customer Name & Title
-  const nameMatch = fullText.match(/(?:Customer\s*Name|Name)\s*[:\-]?\s*([A-Za-z\s.]+?)(?=\n|CRN|Cust|Account|Address|Branch|Period|Opening|$)/i);
+  const nameMatch = fullText.match(/(?:Customer\s*Name|Name)\s*[:\-]?\s*([A-Za-z\s.]+?)(?=\n|CRN|Cust|Account|Address|Branch|Period|Opening|$)/i)
+    || fullText.match(/Account No\.?\s*\d+\s*\n\s*([A-Za-z\s.]+?)\s*\n\s*(?:Account Type|CRN)/i);
   if (nameMatch) {
     const rawName = nameMatch[1].trim();
     if (isHdfc) {
@@ -160,7 +161,7 @@ export function extractMetadataFromText(fullText, lines = [], detectedBank = 'Ko
   }
 
   // 4. Branch
-  const branchMatch = fullText.match(/(?:Branch|Branch\s*Name)\s*[:\-]?\s*([A-Za-z0-9\s,\-]+?)(?=\n|IFSC|MICR|Phone|Tel|Email|Period|$)/i);
+  const branchMatch = fullText.match(/Branch\s*[:\-]?\s*([A-Za-z0-9\s,\-]+?)(?=\n|Sai|Flat|IFSC|MICR|Phone|Tel|Email|Period|Account|$)/i);
   if (branchMatch) {
     account.branch = branchMatch[1].trim();
   }
@@ -178,30 +179,31 @@ export function extractMetadataFromText(fullText, lines = [], detectedBank = 'Ko
   }
 
   // 7. Statement Period (Start & End Date)
-  const periodMatch = fullText.match(/(?:Statement\s*Period|Period|From)\s*[:\-]?\s*([0-9]{1,2}[-/.][A-Za-z0-9]{2,3}[-/.][0-9]{2,4})\s*(?:to|-)\s*([0-9]{1,2}[-/.][A-Za-z0-9]{2,3}[-/.][0-9]{2,4})/i);
+  const periodMatch = fullText.match(/(?:Statement\s*Period|Period|From)\s*[:\-]?\s*([0-9]{1,2}[-/. ][A-Za-z0-9]{2,3}[-/. ][0-9]{2,4})\s*(?:to|-)\s*([0-9]{1,2}[-/. ][A-Za-z0-9]{2,3}[-/. ][0-9]{2,4})/i)
+    || fullText.match(/(\d{1,2}\s+[A-Za-z]{3}\s+\d{4}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4})\s*-\s*(\d{1,2}\s+[A-Za-z]{3}\s+\d{4}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/);
   if (periodMatch) {
     account.periodStart = parseDateToISO(periodMatch[1]);
     account.periodEnd = parseDateToISO(periodMatch[2]);
   }
 
   // 8. Opening Balance
-  const opBalMatch = fullText.match(/Opening\s*Balance\s*[:\-]?\s*(?:INR|Rs\.?|₹)?\s*([\d,]+\.?\d*)/i);
+  const opBalMatch = fullText.match(/Opening\s*Balance[^\d]*([\d,]+\.?\d*)/i);
   if (opBalMatch) {
     account.openingBalance = cleanAmount(opBalMatch[1]);
   }
 
-  // 9. PIN Code & City
+  // 9. PIN Code, City, State
   const pinMatch = fullText.match(/\b(1\d{5}|2\d{5}|3\d{5}|4\d{5}|5\d{5}|6\d{5}|7\d{5}|8\d{5})\b/);
   if (pinMatch) {
     account.pinCode = pinMatch[1];
   }
 
-  const cityMatch = fullText.match(/(?:City)\s*[:\-]?\s*([A-Za-z]+)/i);
+  const cityMatch = fullText.match(/([A-Za-z]+)\s*-\s*\d{6}/) || fullText.match(/(?:City)\s*[:\-]?\s*([A-Za-z]+)/i);
   if (cityMatch) {
     account.city = cityMatch[1].trim();
   }
 
-  const stateMatch = fullText.match(/(?:State)\s*[:\-]?\s*([A-Za-z\s]+)/i);
+  const stateMatch = fullText.match(/([A-Za-z]+)\s*-\s*India/i) || fullText.match(/(?:State)\s*[:\-]?\s*([A-Za-z\s]+)/i);
   if (stateMatch) {
     account.state = stateMatch[1].trim();
   }
@@ -215,124 +217,152 @@ export function extractMetadataFromText(fullText, lines = [], detectedBank = 'Ko
 export function extractTransactionsFromLines(lines = []) {
   const transactions = [];
 
-  // Match dates in standard formats
-  const dateRegex = /\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}-[A-Za-z]{3}-\d{2,4})\b/;
-  // Match monetary token pattern like "1,250.00", "50000.00", "0.00", "-"
-  const amountPattern = /(?:^|\s)([\d,]+\.\d{2}|-)(?=\s|$)/g;
+  const txDateRegex = /^(\d+\s+)?(\d{1,2}\s+[A-Za-z]{3}\s+\d{4}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}-[A-Za-z]{3}-\d{2,4})\s+/;
+  const threeAmtRegex = /([\d,]+\.\d{2}|-)\s+([\d,]+\.\d{2}|-)\s+([\d,]+\.\d{2})$/;
+  const twoAmtRegex = /([\d,]+\.\d{2})\s+([\d,]+\.\d{2})$/;
 
+  const STOP_PATTERNS = [
+    /End of Statement/i,
+    /Account Summary/i,
+    /For assistance, reach out/i,
+    /Important Information/i,
+    /Commonly Used Narrations/i,
+    /Registered Office:/i,
+    /•\s*RBI mandates/i,
+    /Statement Generated on/i,
+    /Page \d+ of \d+/i,
+  ];
+
+  let runningPaise = null;
+  let currentTx = null;
+  let inStatementBody = true;
   let firstFoundBalance = null;
   let firstFoundTxType = null;
   let firstFoundTxAmount = null;
 
-  for (const line of lines) {
-    const trimmed = line.trim();
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
     if (!trimmed) continue;
 
-    // Check if line contains a date
-    const dateMatch = trimmed.match(dateRegex);
-    if (!dateMatch) continue;
-
-    // Match all amount-like tokens at the end of the line
-    const amounts = [];
-    let m;
-    amountPattern.lastIndex = 0;
-    while ((m = amountPattern.exec(trimmed)) !== null) {
-      amounts.push({ raw: m[1], index: m.index });
+    if (STOP_PATTERNS.some(p => p.test(trimmed))) {
+      if (trimmed.includes('End of Statement') || trimmed.includes('Account Summary')) {
+        inStatementBody = false;
+      }
+      continue;
     }
 
-    // A valid tabular transaction row must have at least 2 or 3 amount columns (e.g. Withdrawal, Deposit, Balance)
-    if (amounts.length < 2) continue;
+    const nextTrimmed = (lines[i + 1] || '').trim();
+    // Skip repeating page headers: e.g. Customer Name before "Account No. ...", or Account No itself
+    if (/^Account No\.?\s*\d+/i.test(nextTrimmed)) {
+      continue;
+    }
 
-    const dateStr = parseDateToISO(dateMatch[1]);
-    if (!dateStr) continue;
+    if (
+      trimmed.includes('Opening Balance') ||
+      trimmed.includes('Account Statement') ||
+      trimmed.startsWith('Savings Account Transactions') ||
+      trimmed.startsWith('# Date Description') ||
+      trimmed.startsWith('Date Narration') ||
+      /^Account No\.?\s*\d+/i.test(trimmed) ||
+      trimmed.startsWith('Kotak Mahindra Bank') ||
+      trimmed.startsWith('HDFC Bank')
+    ) {
+      continue;
+    }
 
-    // The last amount is usually the closing/running balance
-    const lastAmtObj = amounts[amounts.length - 1];
-    const balance = cleanAmount(lastAmtObj.raw);
+    const matchDate = trimmed.match(txDateRegex);
+    if (matchDate) {
+      if (currentTx) {
+        transactions.push(currentTx);
+        currentTx = null;
+      }
 
-    // Identify withdrawal (debit) and deposit (credit)
-    let type = 'debit';
-    let amount = '0.00';
+      const dateStr = parseDateToISO(matchDate[2]);
+      const rest = trimmed.slice(matchDate[0].length).trim();
+      const match3 = rest.match(threeAmtRegex);
+      const match2 = !match3 ? rest.match(twoAmtRegex) : null;
+      const matchAmts = match3 || match2;
 
-    if (amounts.length >= 3) {
-      const withdrawal = cleanAmount(amounts[amounts.length - 3].raw);
-      const deposit = cleanAmount(amounts[amounts.length - 2].raw);
+      if (matchAmts) {
+        let type = 'debit';
+        let amount = '0.00';
+        let balance = '0.00';
 
-      if (Number(deposit) > 0 && Number(withdrawal) === 0) {
-        type = 'credit';
-        amount = deposit;
-      } else if (Number(withdrawal) > 0) {
-        type = 'debit';
-        amount = withdrawal;
-      } else {
-        // Fallback: check which was not "-"
-        if (amounts[amounts.length - 2].raw !== '-' && Number(deposit) > 0) {
-          type = 'credit';
-          amount = deposit;
+        // 3 amounts: [withdrawal, deposit, balance]
+        if (match3) {
+          const w = cleanAmount(match3[1]);
+          const d = cleanAmount(match3[2]);
+          balance = cleanAmount(match3[3]);
+          if (Number(d) > 0 && Number(w) === 0) {
+            type = 'credit';
+            amount = d;
+          } else {
+            type = 'debit';
+            amount = w;
+          }
+          runningPaise = Math.round(Number(balance) * 100);
         } else {
-          type = 'debit';
-          amount = withdrawal;
+          // 2 amounts: [txAmount, balance]
+          amount = cleanAmount(match2[1]);
+          balance = cleanAmount(match2[2]);
+          const curBalPaise = Math.round(Number(balance) * 100);
+
+          if (runningPaise !== null) {
+            if (curBalPaise > runningPaise) {
+              type = 'credit';
+            } else {
+              type = 'debit';
+            }
+          } else {
+            // First transaction
+            if (trimmed.toLowerCase().includes('cr') || trimmed.toLowerCase().includes('credit')) {
+              type = 'credit';
+            } else {
+              type = 'debit';
+            }
+          }
+          runningPaise = curBalPaise;
+        }
+
+        const middle = rest.slice(0, matchAmts.index).trim();
+        let ref = '';
+        let desc = middle;
+        const refMatch = middle.match(/\s+(UPI[-/][A-Za-z0-9/]+|NEFT[-/][A-Za-z0-9/]+|IMPS[-/][A-Za-z0-9/]+|CHQ\s*[:\-]?\s*\d+|\d{10,18}|[A-Za-z0-9/-]{8,24})$/i);
+        if (refMatch) {
+          ref = refMatch[1].trim();
+          desc = middle.slice(0, refMatch.index).trim();
+        }
+
+        if (firstFoundBalance === null && Number(balance) > 0) {
+          firstFoundBalance = balance;
+          firstFoundTxType = type;
+          firstFoundTxAmount = amount;
+        }
+
+        currentTx = {
+          id: newId(),
+          date: dateStr,
+          valueDate: dateStr,
+          description: desc,
+          reference: ref,
+          amount,
+          type,
+          _balance: balance,
+        };
+      }
+    } else if (currentTx && inStatementBody) {
+      if (!trimmed.startsWith('#') && !trimmed.startsWith('Date') && !trimmed.includes('Kotak Mahindra Bank') && !trimmed.includes('HDFC Bank')) {
+        const cleanCont = trimmed.split(/(?:End of Statement|Account Summary|Savings Account \(SA\)|Important Information)/)[0].trim();
+        if (cleanCont) {
+          currentTx.description = (currentTx.description + ' ' + cleanCont).trim();
         }
       }
-    } else if (amounts.length === 2) {
-      // 2 amounts: [TxAmount, Balance]
-      const txAmt = cleanAmount(amounts[0].raw);
-      amount = txAmt;
-      if (trimmed.toLowerCase().includes('cr') || trimmed.toLowerCase().includes('credit')) {
-        type = 'credit';
-      } else {
-        type = 'debit';
-      }
     }
-
-    if (Number(amount) <= 0) continue;
-
-    // Extract narration and reference from between date and amounts
-    const firstAmtIndex = amounts[amounts.length >= 3 ? amounts.length - 3 : 0].index;
-    const middleText = trimmed.slice(dateMatch.index + dateMatch[0].length, firstAmtIndex).trim();
-
-    let reference = '';
-    let description = middleText;
-
-    // In tabular layouts, Chq/Ref No is located right before the amounts (at the end of middleText),
-    // or follows patterns like UPI-\d+, UPI/\d+, NEFT-..., IMPS-..., \d{10,18}
-    const refMatch = middleText.match(/\b(UPI[-/]\d+[A-Za-z0-9/]*|NEFT[-/][A-Za-z0-9]+|IMPS[-/][A-Za-z0-9]+|CHQ\s*[:\-]?\s*\d+|\d{10,18})\b/i)
-      || middleText.match(/\s+([A-Za-z0-9/-]{8,24})$/);
-    if (refMatch) {
-      reference = refMatch[1].trim();
-      // Description is middleText with reference removed
-      description = middleText.slice(0, refMatch.index) + middleText.slice(refMatch.index + refMatch[0].length);
-      description = description.replace(/\s+/g, ' ').trim();
-    }
-
-    if (!description) {
-      description = middleText || (type === 'credit' ? 'Deposit Credit' : 'Payment / Withdrawal');
-    }
-
-    // Clean leading row numbers (e.g. "1 ", "12 ")
-    description = description.replace(/^\d+\s+/, '').trim();
-
-    if (firstFoundBalance === null && Number(balance) > 0) {
-      firstFoundBalance = balance;
-      firstFoundTxType = type;
-      firstFoundTxAmount = amount;
-    }
-
-    transactions.push({
-      id: newId(),
-      date: dateStr,
-      valueDate: dateStr,
-      description,
-      reference,
-      amount,
-      type,
-      _balance: balance,
-    });
   }
 
-  // Sort transactions chronologically
-  transactions.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  if (currentTx) transactions.push(currentTx);
 
+  transactions.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   return {
     transactions,
     firstFoundBalance,
@@ -407,7 +437,20 @@ export async function parseStatementPdf(fileOrBuffer) {
     throw new Error('Invalid input: expected a PDF File or ArrayBuffer.');
   }
 
-  const doc = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+  const data = new Uint8Array(arrayBuffer);
+  let pdfjsLib = pdfjs;
+
+  // In Node.js testing/CLI environments, dynamically use legacy build to prevent subtle crypto issues
+  if (typeof window === 'undefined') {
+    try {
+      const legacy = await import('pdfjs-dist/legacy/build/pdf.mjs');
+      if (legacy && legacy.getDocument) pdfjsLib = legacy;
+    } catch {
+      // ignore
+    }
+  }
+
+  const doc = await pdfjsLib.getDocument({ data }).promise;
   const allLines = [];
 
   for (let i = 1; i <= doc.numPages; i++) {

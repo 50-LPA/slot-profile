@@ -398,6 +398,33 @@ This section collects and documents the batch of 13 upcoming change requests wit
   5. Provide a prominent `+ Add next transaction` button at the bottom of the list with auto-advancing monthly dates.
   6. When 0 transactions exist, display an empty state placeholder with an `+ Add first transaction` button.
 - **Status**: **APPROVED & IMPLEMENTED**
+
+---
+
+### [CR-024] (Item 18): Authentic Multi-Page Statement PDF Import & Extraction Verification
+- **Component**: `src/statements/lib/pdfParser.js`, `src/statements/statement-pdf-parser.test.js`
+- **User Request**: *"check and test if import pdf works with this pdf '/home/sugat/Downloads/statement-mahadev-2021-01-01_2024-10-31 (5).pdf'"*
+- **Category**: PDF Import Engine / Multi-Page Parser & Mathematical Reconciler
+- **Context**:
+  - Authentic Kotak Mahindra Bank statements format transactions in a 2-amount column layout (`[Tx Amount, Balance]`) where the deposit column is omitted for withdrawals and the withdrawal column is omitted for deposits.
+  - Authentic statements feature masked customer identification numbers (e.g., CRN: `xxxxxx135`), unlabelled customer names directly preceding account numbers, and multi-page repeating headers/footers (`End of Statement`, `Hausla hai toh ho jayega`, `Account Summary`).
+  - The PDF import engine must extract all metadata and tabular records across arbitrary page counts without data loss, header bleed, or mathematical discrepancy.
+- **Implementation & Verification**:
+  1. **Dual Amount Regex Strategy**: Created `threeAmtRegex` for 3-column rows (`[withdrawal, deposit, balance]`) and `twoAmtRegex` for 2-column rows (`[amount, balance]`) to prevent optional token matching conflicts.
+  2. **Mathematical Running Balance Classification**: Accurately classifies transactions as `credit` or `debit` by comparing integer paise running balances (`curBalPaise > runningPaise ? credit : debit`).
+  3. **Header & Footer Bleed Suppression**: Filtered out repeating multi-page headers (`Mahadev` immediately preceding `Account No. 1249641801`, `Account No.`, `Savings Account Transactions`) and truncated continuation lines at footer stops.
+  4. **Empirical PDF Verification on User File** (`statement-mahadev-2021-01-01_2024-10-31 (5).pdf` - 34 pages):
+     - Bank: `Kotak Mahindra Bank`
+     - Customer Name: `Mahadev`
+     - Account Number: `1249641801`
+     - Customer ID (CRN): `xxxxxx135`
+     - Branch: `Pune-Baner` | IFSC: `KKBK0001767` | MICR: `411485022`
+     - City: `Pune` | State: `Maharashtra` | PIN: `411045`
+     - Period: `2021-01-01` to `2024-10-31`
+     - Opening Balance: `8,729.00`
+     - Total Extracted Transactions: `958` (45 credits totaling `₹10,45,180.13`, 913 debits totaling `₹7,44,340.75`).
+     - Computed Closing Balance: `₹3,09,568.38` (matches final statement balance to the exact paise; 0 invalid, 0 out-of-period, 0 negative balances).
+- **Status**: **APPROVED & FULLY VERIFIED**
 ---
 
 ## Approved Design Rules
