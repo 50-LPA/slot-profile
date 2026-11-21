@@ -59,13 +59,36 @@ This document tracks all user change requests, visual refinements, design rules,
 
 ---
 
+### [CR-005] Synchronous Statement Persistence & Sub-Route Mounting Stability
+- **Date**: 2026-11-21
+- **Components**: `src/statements/App.jsx`, `src/App.jsx`, `src/statements/components/Dashboard.jsx`
+- **User Request**: *"check why new statement btn at @slot-profile/src/statements/components/Dashboard.jsx:80-81 is not working , also ther is no log in console etc !"*
+- **Root Cause & Diagnosis**:
+  - In `src/App.jsx`, the parent route container had `<PageError key={hash}>{page}</PageError>`. Whenever the URL hash changed from `#/statements` to `#/statements/edit/<id>`, the `key={hash}` caused React to completely unmount and remount the `StatementsApp` component tree.
+  - In `src/statements/App.jsx`, statement updates were persisted asynchronously via a debounced 500ms timer (`useEffect(() => saveAll(list), 500)`).
+  - When the user clicked "New statement" (or "New from demo" / opened a JSON file), `create` called `onSave(st)` (which queued `upsert`) and immediately executed `go(st.id)`.
+  - The instantaneous hash change triggered the unmount of `StatementsApp`, which immediately aborted the pending 500ms timer (`clearTimeout(t)`) before `saveAll` ever reached `localStorage`.
+  - The freshly mounted `StatementsApp` instance initialized its list by calling `loadAll()` from `localStorage`, which still only held the old statement list without the new one.
+  - On line 66 of `src/statements/App.jsx`, `if (route.id && !current) go(null)` checked for the existence of `current`. Because `current` was `null`, it immediately and silently redirected the URL back to `#/statements` without any console warnings or errors, making the button appear completely dead.
+- **Status**: **APPROVED & IMPLEMENTED**
+- **Changes**:
+  - In `src/statements/App.jsx`: Updated `upsert` and `remove` to call `saveAll(updated)` synchronously so `localStorage` is guaranteed to be committed before URL navigation occurs.
+  - In `src/App.jsx`: Updated `PageError` key to `key={hash.startsWith('#/statements') ? 'statements' : hash}` so sub-route navigation (`#/statements` to `#/statements/edit/:id`) does not destructively unmount the component tree.
+
+---
+
 ## Approved Design Rules
 1. **Form Hierarchy**: Primary selector/classifier fields that govern the entire document template (e.g. `Bank Name`) should span full width (`full: true`) at the top of fieldsets.
 2. **Balanced 2-Column Grids**: When reordering or expanding fields in `.st-form-grid`, verify that remaining fields pair symmetrically without leaving unintended single-column holes.
 3. **No Unscoped Leaks**: Form styles and field spans must remain strictly scoped within `.statement-root` to prevent bleeding into the Resume Builder or Candidate lists.
 4. **Zero Emoji Invariant**: No raw unicode emojis (`🎓`, `⚡`, `📥`, `✓`, `●`, `★`, `⚠`) in UI buttons, chips, or labels. Always use scalable vector icons from `src/icons.jsx`.
+5. **Atomic Navigation Persistence**: Any user interaction that creates, clones, or deletes an entity and immediately navigates via URL hash must commit changes to persistent storage synchronously rather than relying purely on debounced autosave effects.
+6. **Sub-Route Error Boundary Stability**: Top-level route containers must key error boundaries by root application section rather than the full granular hash string to prevent unneeded tree unmounting during internal sub-route transitions.
 
 ---
 
 ## Rejected Ideas & Anti-Patterns
-*(Document rejected designs and approaches here with reasons why they failed to avoid repeating them.)*
+- **Anti-Pattern: Raw `key={hash}` on Parent Error Boundaries**:
+  - *Why it failed*: Tearing down the entire application tree on every sub-route parameter change resets in-memory component state, drops active Web Workers, cancels in-flight debounce timers, and causes flickering.
+- **Anti-Pattern: Purely Debounced Autosave for Route-Triggering Actions**:
+  - *Why it failed*: Debouncing is essential while typing form inputs to avoid disk thrashing, but relying on it for action buttons that immediately transition route state causes race conditions with component unmounts.

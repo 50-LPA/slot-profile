@@ -45,9 +45,21 @@ export default function App() {
 
   const upsert = useCallback(st => {
     const next = { ...st, updatedAt: Date.now() };
-    setList(l => (l.some(x => x.id === st.id) ? l.map(x => (x.id === st.id ? next : x)) : [next, ...l]));
+    setList(l => {
+      const updated = l.some(x => x.id === st.id) ? l.map(x => (x.id === st.id ? next : x)) : [next, ...l];
+      saveAll(updated);
+      return updated;
+    });
+    setSavedAt(new Date());
   }, []);
-  const remove = useCallback(id => setList(l => l.filter(x => x.id !== id)), []);
+  const remove = useCallback(id => {
+    setList(l => {
+      const updated = l.filter(x => x.id !== id);
+      saveAll(updated);
+      return updated;
+    });
+    setSavedAt(new Date());
+  }, []);
 
   const current = route.id ? list.find(s => s.id === route.id) : null;
   useEffect(() => {

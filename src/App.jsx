@@ -232,7 +232,7 @@ export default function App() {
   return (
     <div className="min-h-screen">
       <Header user={user} onLogout={logout} />
-      <PageError key={hash}>{page}</PageError>
+      <PageError key={hash.startsWith('#/statements') ? 'statements' : hash}>{page}</PageError>
       <Toaster />
     </div>
   )
