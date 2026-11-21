@@ -4,6 +4,7 @@ import { blankTransaction, newId } from '../lib/model.js';
 import { fillTransactionGaps, parseTransactionsFromJson } from '../lib/seeder.js';
 import { validateTransaction } from '../lib/validate.js';
 import { ICONS, Icon } from '../../icons.jsx';
+import { Button, Card, CardHeader } from '../../ui.jsx';
 import DatePicker from './DatePicker.jsx';
 
 export default function TransactionManager({ statement, onTransactions, onAccount, onUpdateStatement }) {
@@ -21,6 +22,19 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
   const fileInputRef = useRef(null);
 
   const set = patch => setDraft(d => ({ ...d, ...patch }));
+
+  function handleAddEntry() {
+    const newTx = { ...blankTransaction(lastDate()), description: 'UPI - Payment', amount: '100.00', type: 'debit' };
+    onTransactions(list => [...list, newTx]);
+    setMsg({ tone: 'ok', text: 'Added new transaction entry.' });
+  }
+
+  function handleRemoveLast() {
+    if (txns.length === 0) return;
+    const last = txns[txns.length - 1];
+    onTransactions(list => list.slice(0, -1));
+    setMsg({ tone: 'ok', text: `Removed transaction: “${last.description || 'Untitled'}”.` });
+  }
 
   function submit(e) {
     e.preventDefault();
@@ -140,20 +154,45 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
   const err = k => errors[k] && <small id={`tx-${k}-err`} className="error">{errors[k]}</small>;
 
   return (
-    <div className="panel">
-      <form ref={formRef} className="group tx-form" onSubmit={submit} noValidate aria-label="Add transaction">
-        <div className="tx-form-header">
-          <h2 className="group-title" style={{ margin: 0 }}>Add transaction</h2>
-          <div className="tx-helper-actions">
-            <button
-              type="button"
-              className="btn btn-sm inline-flex items-center gap-1.5"
+    <Card className="mt-4">
+      <CardHeader
+        title={
+          <div className="flex items-center gap-2">
+            <span>Transactions</span>
+            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+              {txns.length}
+            </span>
+          </div>
+        }
+        actions={
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            <Button
+              size="sm"
+              variant="plain"
+              icon={ICONS.plus}
+              onClick={handleAddEntry}
+              title="Add a new transaction entry manually"
+              className="h-8 px-2 font-bold text-emerald-700 hover:bg-emerald-50"
+            />
+            <Button
+              size="sm"
+              variant="plain"
+              icon={ICONS.minus}
+              onClick={handleRemoveLast}
+              disabled={txns.length === 0}
+              title="Remove the last transaction entry"
+              className="h-8 px-2 text-rose-700 hover:bg-rose-50 disabled:opacity-40"
+            />
+            <Button
+              size="sm"
+              variant="plain"
+              icon={ICONS.import}
               onClick={() => fileInputRef.current?.click()}
               title="Import salary credits or transactions from a JSON file"
+              className="h-8 px-2.5"
             >
-              <Icon d={ICONS.import} className="h-3.5 w-3.5" />
               Import JSON
-            </button>
+            </Button>
             <input
               ref={fileInputRef}
               type="file"
@@ -161,18 +200,22 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
               hidden
               onChange={handleJsonFile}
             />
-            <button
-              type="button"
-              className="btn btn-sm inline-flex items-center gap-1.5"
+            <Button
+              size="sm"
+              variant="plain"
+              icon={ICONS.bolt}
               disabled={fillingGaps}
               onClick={handleFillGaps}
-              title="Fill empty days between transactions with realistic daily random debits"
+              title="Fill empty days between transactions with realistic daily random debits and credits"
+              className="h-8 px-2.5"
             >
-              <Icon d={ICONS.bolt} className="h-3.5 w-3.5" />
               {fillingGaps ? 'Filling…' : 'Fill gaps with random'}
-            </button>
+            </Button>
           </div>
-        </div>
+        }
+      />
+
+      <form ref={formRef} className="mt-4 group tx-form" onSubmit={submit} noValidate aria-label="Add transaction">
         <div className="st-form-grid tx-grid">
           <div className="field">
             <label htmlFor="tx-date">Transaction date <span className="req" aria-hidden="true">*</span></label>
@@ -207,7 +250,7 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
             {err('description')}
           </div>
           <div className="field">
-            <label htmlFor="tx-reference">Reference no.</label>
+            <label htmlFor="tx-reference">Chq/Ref. No.</label>
             <input maxLength={30} placeholder="Demo reference" {...fieldProps('reference')} />
             {err('reference')}
           </div>
@@ -218,29 +261,48 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
           </div>
           <div className="field">
             <span className="label" id="tx-type-label">Type</span>
-            <div className="seg" role="radiogroup" aria-labelledby="tx-type-label">
-              {['debit', 'credit'].map(v => (
-                <label key={v} className={`seg-opt ${v} ${draft.type === v ? 'on' : ''}`}>
-                  <input type="radio" name="tx-type" value={v} checked={draft.type === v} onChange={() => set({ type: v })} />
-                  {v === 'debit' ? 'Debit' : 'Credit'}
-                </label>
-              ))}
+            <div className="flex h-[34px] overflow-hidden rounded-md border border-gray-300 bg-white text-xs font-semibold" role="group" aria-labelledby="tx-type-label">
+              <button
+                type="button"
+                className={`flex-1 flex items-center justify-center transition-colors cursor-pointer ${
+                  draft.type === 'debit'
+                    ? 'bg-rose-600 text-white font-bold shadow-xs'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+                onClick={() => set({ type: 'debit' })}
+                aria-pressed={draft.type === 'debit'}
+              >
+                Debit
+              </button>
+              <div className="w-[1px] bg-gray-300" />
+              <button
+                type="button"
+                className={`flex-1 flex items-center justify-center transition-colors cursor-pointer ${
+                  draft.type === 'credit'
+                    ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+                onClick={() => set({ type: 'credit' })}
+                aria-pressed={draft.type === 'credit'}
+              >
+                Credit
+              </button>
             </div>
           </div>
           <div className="field tx-actions">
-            <button type="submit" className="btn primary">Add transaction</button>
+            <Button type="submit" variant="primary" size="md" className="w-full">Add transaction</Button>
           </div>
         </div>
       </form>
 
       {msg && (
-        <div className={`alert ${msg.tone}`} role="status">
+        <div className={`mt-3 alert ${msg.tone}`} role="status">
           <div className="alert-row">
             <span>{msg.text}</span>
             <button type="button" className="link" onClick={() => setMsg(null)} aria-label="Dismiss message">Dismiss</button>
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

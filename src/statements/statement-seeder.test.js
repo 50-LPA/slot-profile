@@ -43,8 +43,8 @@ test('generateSeedTransactions generates 5 to 10 debits daily and exact monthly 
   // 5 days * (5 to 10) = 25 to 50 debits + 1 credit on 2026-01-02
   assert.ok(txs.length >= 26 && txs.length <= 51);
 
-  // Check monthly credit
-  const credits = txs.filter(t => t.type === 'credit');
+  // Check monthly recurring salary credit
+  const credits = txs.filter(t => t._isMonthlyCredit);
   assert.equal(credits.length, 1);
   assert.equal(credits[0].date, '2026-01-02');
   assert.equal(credits[0].amount, '65000.00');
@@ -132,7 +132,7 @@ test('supports monthly custom amounts and dates overrides', () => {
     },
   });
 
-  const credits = txs.filter(t => t.type === 'credit');
+  const credits = txs.filter(t => t._isMonthlyCredit);
   assert.equal(credits.length, 3);
   assert.equal(credits[0].date, '2026-01-03');
   assert.equal(credits[0].amount, '52000.00');
@@ -193,11 +193,15 @@ test('fillTransactionGaps preserves salary credits, populates realistic debits, 
 
   const filled = fillTransactionGaps(account, parsed.transactions);
   assert.ok(filled.addedCount > 0, 'Should add gap transactions');
-  assert.ok(filled.transactions.length > 45, 'Total transactions should include existing plus new debits');
+  assert.ok(filled.transactions.length > 45, 'Total transactions should include existing plus new filler transactions');
 
-  // Verify all 45 salary credits are still intact
+  // Verify all 45 original salary credits are still preserved
+  for (const sc of parsed.transactions) {
+    assert.ok(filled.transactions.some(t => t.id === sc.id), 'Original salary credit preserved');
+  }
   const credits = filled.transactions.filter(t => t.type === 'credit');
-  assert.equal(credits.length, 45, 'All 45 salary credits must be preserved');
+  assert.ok(credits.length >= 45, 'All 45 salary credits must be preserved');
+  assert.ok(filled.transactions.some(t => t.type === 'debit'), 'Debits must be populated');
 
   // Verify all transactions pass validation
   for (const t of filled.transactions) {

@@ -215,7 +215,7 @@ This section collects and documents the batch of 13 upcoming change requests wit
 - **Proposed Solution**:
   - In `src/statements/styles.css`, add `border-bottom: none;` to `.statement-root .field` and `.tx-grid .field` to neutralize the inherited dashed border.
   - Ensure `.tx-grid` and the entire "ADD TRANSACTION" section renders cleanly without unwanted dashed horizontal separator lines.
-- **Status**: **DOCUMENTED (Ready for implementation)**
+- **Status**: **APPROVED & IMPLEMENTED (Batch 2)**
 
 ### [CR-014] (Item 9/13): Rename "Reference no." Label to "Chq/Ref. No."
 - **Component**: `src/statements/components/TransactionManager.jsx`
@@ -228,7 +228,7 @@ This section collects and documents the batch of 13 upcoming change requests wit
 - **Proposed Solution**:
   - In `src/statements/components/TransactionManager.jsx`, change `<label htmlFor="tx-reference">Reference no.</label>` to `<label htmlFor="tx-reference">Chq/Ref. No.</label>`.
   - Retain the internal key `draft.reference` and input `id="tx-reference"` so data structures, seeder generators, and validation stay completely intact.
-- **Status**: **DOCUMENTED (Ready for implementation)**
+- **Status**: **APPROVED & IMPLEMENTED (Batch 2)**
 
 ### [CR-015] (Item 10/13): Redesign and Reset Debit / Credit Type Toggle Buttons
 - **Components**: `src/statements/components/TransactionManager.jsx`, `src/statements/styles.css`
@@ -244,7 +244,7 @@ This section collects and documents the batch of 13 upcoming change requests wit
     - Active Debit: High-contrast red badge (`bg-rose-600 text-white font-semibold` or `bg-rose-50 text-rose-700 border-rose-300`).
     - Active Credit: High-contrast green badge (`bg-emerald-600 text-white font-semibold` or `bg-emerald-50 text-emerald-700 border-emerald-300`).
   - Strip the leaking dashed bottom border and ensure height/alignment matches the neighboring "Add transaction" action button.
-- **Status**: **DOCUMENTED (Ready for implementation)**
+- **Status**: **APPROVED & IMPLEMENTED (Batch 2)**
 
 ### [CR-016] (Item 11/13): Generate Both Debits and Credits in Random Seeder Engines
 - **Components**: `src/statements/lib/seeder.js`, `src/statements/components/TransactionSeeder.jsx`, `src/statements/components/TransactionManager.jsx`
@@ -263,7 +263,7 @@ This section collects and documents the batch of 13 upcoming change requests wit
   - In `fillTransactionGaps()`: Allocate ~5–12% of generated gap items to realistic incoming credits, naturally replenishing the account's liquidity and preventing low-balance throttling.
   - In `generateSeedTransactions()`: Intersperse 2–4 auxiliary incoming credits per month alongside the main corporate salary credit.
   - Invariant: Keep integer paise financial calculations exact (`toPaise` / `plainAmount`) and guarantee closing balances remain strictly positive.
-- **Status**: **DOCUMENTED (Ready for implementation)**
+- **Status**: **APPROVED & IMPLEMENTED (Batch 2)**
 
 ### [CR-017] (Item 12/13): Separate Transactions into Dedicated Card with Header `+` / `−` Controls
 - **Components**: `src/statements/components/TransactionManager.jsx`, `src/statements/components/Editor.jsx`
@@ -281,7 +281,7 @@ This section collects and documents the batch of 13 upcoming change requests wit
       - `+` (Add entry) and `−` (Remove entry / clear draft) icon buttons using `ICONS.plus` and `ICONS.minus` for quick manual manipulation.
       - Existing batch actions: `Import JSON` and `Fill gaps with random`.
   - Provides clear spatial separation between Account metadata and Transaction ledger management.
-- **Status**: **DOCUMENTED (Ready for implementation)**
+- **Status**: **APPROVED & IMPLEMENTED (Batch 2)**
 
 ### [CR-018] (Item 13a/13): Remove "Load .json" and "Save .json" Header Action Buttons
 - **Component**: `src/statements/components/Editor.jsx`

@@ -82,6 +82,54 @@ function generateAmountPaise(cat) {
 }
 
 /**
+ * Generate realistic secondary incoming credit transactions (P2P UPI, Refunds, Interest)
+ */
+export function generateRandomCredit({ bank, dateStr, isHdfc, holderName }) {
+  const rrn = random12Digit();
+  const utr = randomUtr(isHdfc ? 'AXOMB' : 'UTIB');
+  const creditType = Math.random();
+
+  let narration;
+  let amtPaise;
+  let refNumber = isHdfc ? utr : `UPI-${rrn}`;
+
+  if (creditType < 0.65) {
+    // P2P UPI Transfer Received (e.g. friend / family / reimbursement)
+    const sender = faker.person.fullName().toUpperCase();
+    amtPaise = Math.floor(200 + Math.random() * 4500) * 100;
+    if (isHdfc) {
+      narration = `UPI-${sender.replace(/[^A-Z0-9\s]/gi, '').slice(0, 15)}-${randomPhone()}${pickRandom(UPI_HANDLES)}-${rrn}-PAYMENT FROM PHONE`;
+    } else {
+      narration = `UPI/${sender}/${pickRandom(['YESB', 'SBIN', 'UTIB', 'HDFC', 'ICIC'])}/${rrn}/Payment from`;
+    }
+  } else if (creditType < 0.90) {
+    // Merchant E-Commerce Refund / Reversal
+    const merchant = pickRandom(['AMAZON', 'FLIPKART', 'SWIGGY', 'ZOMATO', 'MYNTRA']);
+    amtPaise = Math.floor(150 + Math.random() * 2500) * 100;
+    if (isHdfc) {
+      narration = `UPI-REFUND-${merchant}@${pickRandom(['apl', 'ybl', 'okhdfcbank'])}-${rrn}-REFUND`;
+    } else {
+      narration = `UPI/REFUND/${merchant}/${rrn}/Refund processed`;
+    }
+  } else {
+    // Savings Bank Interest
+    amtPaise = Math.floor(350 + Math.random() * 1800) * 100;
+    narration = isHdfc ? 'CREDIT INTEREST CAPITALISED' : '1.75% SB INT:KKBK0001767';
+    refNumber = isHdfc ? '000000000000000' : 'KKBK-INT';
+  }
+
+  return {
+    id: newId(),
+    date: dateStr,
+    valueDate: dateStr,
+    description: narration,
+    reference: refNumber,
+    amount: (amtPaise / 100).toFixed(2),
+    type: 'credit',
+  };
+}
+
+/**
  * Generate dynamic statement transactions (Pointer 1, Pointer 2, Pointer 3)
  *
  * @param {Object} account - statement account data (bank, periodStart, periodEnd, openingBalance, etc.)
@@ -184,6 +232,11 @@ export function generateSeedTransactions(account, options = {}) {
     const count = Math.floor(minDailyTx + Math.random() * (maxDailyTx - minDailyTx + 1));
 
     for (let i = 0; i < count; i++) {
+      if (Math.random() < 0.08) {
+        txs.push(generateRandomCredit({ bank, dateStr, isHdfc, holderName }));
+        continue;
+      }
+
       const cat = pickWeightedCategory();
       const amtPaise = generateAmountPaise(cat);
 
@@ -503,6 +556,15 @@ export function fillTransactionGaps(account, existingTransactions = [], options 
     if (shouldSpend) {
       const txCount = Math.random() < 0.7 ? 1 : 2;
       for (let i = 0; i < txCount; i++) {
+        // Probabilistically generate occasional auxiliary incoming credit (P2P UPI received, refund, interest)
+        if (Math.random() < 0.10) {
+          const cred = generateRandomCredit({ bank, dateStr, isHdfc, holderName });
+          const p = toPaise(cred.amount);
+          runningBalPaise += p;
+          newDebits.push(cred);
+          continue;
+        }
+
         const currentSafe = runningBalPaise - minReservePaise;
         const currentBudget = targetMonthlySpendingPaise - monthlyDebitsSpentPaise;
         const maxSpendable = Math.min(currentSafe, currentBudget);
