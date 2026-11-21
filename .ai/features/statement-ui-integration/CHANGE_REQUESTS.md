@@ -19,6 +19,18 @@ This document tracks all user change requests, visual refinements, design rules,
 
 ---
 
+### [CR-002] Compact Transaction Seeder & Minimal Vertical Header
+- **Date**: 2026-11-21
+- **Components**: `src/statements/components/Editor.jsx`, `src/statements/components/TransactionSeeder.jsx`
+- **User Request**: User manually stripped seeder container down to a compact button and commented out `<SummaryBar />`.
+- **Rationale / Rule**:
+  - **Screen Real Estate Optimization**: Eliminates vertical clutter above the left form column. Opening/closing metrics are already clearly visible in the preview pane and closing balance summary, making the separate SummaryBar redundant on desktop.
+  - **Minimalist Action Triggers**: Converting the bulky seeder card/banner into a clean compact button (`btn btn-sm`) keeps random data generation quickly accessible without distracting from the main form inputs.
+- **Status**: **APPROVED & IMPLEMENTED**
+- **Changes**: Commented out `<SummaryBar>` in `Editor.jsx`; streamlined `TransactionSeeder.jsx` into a standalone action button.
+
+---
+
 ## Approved Design Rules
 1. **Form Hierarchy**: Primary selector/classifier fields that govern the entire document template (e.g. `Bank Name`) should span full width (`full: true`) at the top of fieldsets.
 2. **Balanced 2-Column Grids**: When reordering or expanding fields in `.st-form-grid`, verify that remaining fields pair symmetrically without leaving unintended single-column holes.

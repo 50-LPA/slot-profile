@@ -75,27 +75,17 @@ export default function TransactionSeeder({ account, transactions = [], onSeed }
     : '⚡ Generate Random Data';
 
   return (
-    <div className="group seeder-group">
-      <div className="seeder-header-clean">
-        <div className="seeder-info">
-          <span className="seeder-badge">Auto Generator</span>
-          <h2 className="group-title" style={{ display: 'inline', marginLeft: 8 }}>
-            Random Data Generator
-          </h2>
-          <p className="seeder-hint">{hintText}</p>
-        </div>
-        <div className="seeder-btn-clean-row">
+ 
+        
           <button
             type="button"
-            className="btn primary"
+            className="btn btn-sm"
             disabled={!hasValidDates || generating}
             onClick={handleGenerate}
             title={hasValidDates ? (hasExisting ? 'Fill empty days between salary payments with daily debits' : `Generate transactions from ${account.periodStart} to ${account.periodEnd}`) : 'Set statement dates first'}
           >
             {btnLabel}
           </button>
-        </div>
-      </div>
-    </div>
+
   );
 }

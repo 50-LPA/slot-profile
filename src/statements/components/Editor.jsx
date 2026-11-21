@@ -146,7 +146,7 @@ export default function Editor({ statement, onChange, savedAt, persistent, onBac
       <div className="mt-4 grid items-start gap-6 lg:grid-cols-[minmax(400px,480px)_minmax(0,1fr)] xl:grid-cols-[minmax(440px,500px)_minmax(0,1fr)]">
         {/* Left Column: Form Editor */}
         <div className="editor space-y-4 min-w-0">
-          <SummaryBar computed={computed} currency={a.currency} />
+          {/* <SummaryBar computed={computed} currency={a.currency} /> */}
 
           {notice && !(notice.fields && errorCount === 0) && (
             <div className={`alert ${notice.tone}`} role="status">
