@@ -482,6 +482,24 @@ This section collects and documents the batch of 13 upcoming change requests wit
   3. **Strict Credit-Only Filter**: Filtered manual form cards to `txns.filter(t => t.type === 'credit')`. All debits remain safely stored in `statement.transactions` for financial calculations (`calc.js`) and live PDF rendering, but never clutter the manual form.
   4. **Strict Credit Defaults**: Card headers render `Salary Transaction #{idx + 1}` with a green `Credit` badge. All manual actions (`+ Add transaction`, `+ Insert above`, `+ Insert below`) explicitly create `type: 'credit'`.
 - **Status**: **APPROVED & FULLY IMPLEMENTED**
+
+---
+
+### [CR-028]: Removal of Redundant "Value Date" from Manual Salary Transactions Form
+- **Component**: `src/statements/components/TransactionManager.jsx`
+- **User Request**: *"explain me what is value date or if not imp remove it"*
+- **Screenshot**: `uploaded_media_1795293485916.jpg`
+- **Category**: UI Simplification / Form Hygiene
+- **Banking Context**:
+  - **Transaction Date**: The date when the transaction occurred or was initiated.
+  - **Value Date**: The date when funds officially begin earning or stop earning interest. For electronic salary transfers (NEFT/IMPS/UPI), Value Date is virtually always identical to Transaction Date.
+  - Kotak Mahindra Bank statements do not feature a "Value Date" column at all.
+  - HDFC statements include a "Value Dt" column, but the system (`calc.js` and `HdfcStatementDocument.jsx`) automatically falls back to `l.valueDate || l.date`.
+- **Implementation**:
+  1. **Removed UI Field**: Removed the redundant `Value date` input from each manual transaction form card.
+  2. **Clean Grid Pairing**: Paired the two primary fields `Transaction date *` (left) and `Amount ({cur}) *` (right) symmetrically in Row 1, followed by `Description *` and `Chq/Ref. No.` full width.
+  3. **Zero Loss Fallback**: Preserved existing model and PDF fallback behavior (`t.valueDate || t.date`).
+- **Status**: **APPROVED & FULLY IMPLEMENTED**
 ---
 
 ## Approved Design Rules

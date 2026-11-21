@@ -292,12 +292,17 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
                     />
                   </div>
                   <div className="field">
-                    <label htmlFor={`tx-${tx.id}-valueDate`}>Value date</label>
-                    <DatePicker
-                      id={`tx-${tx.id}-valueDate`}
-                      value={tx.valueDate}
-                      onChange={val => updateField(tx.id, 'valueDate', val)}
-                      placeholder="Blank = same as date"
+                    <label htmlFor={`tx-${tx.id}-amt`}>
+                      Amount ({cur}) <span className="req">*</span>
+                    </label>
+                    <input
+                      id={`tx-${tx.id}-amt`}
+                      type="text"
+                      inputMode="decimal"
+                      value={tx.amount || ''}
+                      onChange={e => updateField(tx.id, 'amount', e.target.value)}
+                      onBlur={e => handleAmountBlur(tx.id, e.target.value)}
+                      placeholder="0.00"
                     />
                   </div>
                   <div className="field full">
@@ -313,7 +318,7 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
                       placeholder="e.g. Salary credit - Demo Technologies Pvt Ltd"
                     />
                   </div>
-                  <div className="field">
+                  <div className="field full">
                     <label htmlFor={`tx-${tx.id}-ref`}>Chq/Ref. No.</label>
                     <input
                       id={`tx-${tx.id}-ref`}
@@ -322,20 +327,6 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
                       value={tx.reference || ''}
                       onChange={e => updateField(tx.id, 'reference', e.target.value)}
                       placeholder="Demo reference"
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor={`tx-${tx.id}-amt`}>
-                      Amount ({cur}) <span className="req">*</span>
-                    </label>
-                    <input
-                      id={`tx-${tx.id}-amt`}
-                      type="text"
-                      inputMode="decimal"
-                      value={tx.amount || ''}
-                      onChange={e => updateField(tx.id, 'amount', e.target.value)}
-                      onBlur={e => handleAmountBlur(tx.id, e.target.value)}
-                      placeholder="0.00"
                     />
                   </div>
                 </div>
