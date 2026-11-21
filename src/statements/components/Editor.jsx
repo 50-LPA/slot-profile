@@ -1,7 +1,7 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { compute } from '../lib/calc.js';
 import { demoStatement } from '../lib/demo.js';
-import { blankAccount, normalizeStatement } from '../lib/model.js';
+import { blankAccount } from '../lib/model.js';
 import { validateAccount } from '../lib/validate.js';
 import { downloadStatementPdf } from '../pdf/generate.jsx';
 import AccountForm from './AccountForm.jsx';
@@ -13,7 +13,7 @@ import { Icon, ICONS } from '../../icons.jsx';
 import { confirmAsk, toast } from '../../toast.jsx';
 
 // Layout: responsive two-column grid inside Card. Left side scrolls naturally, right side PDF preview sticks to top.
-export default function Editor({ statement, onChange, onSwitchBank, savedAt, onBack }) {
+export default function Editor({ statement, onChange, onSwitchBank, onBack }) {
   const computed = useMemo(() => compute(statement), [statement]);
   const errors = useMemo(() => validateAccount(statement.account), [statement.account]);
   const errorCount = Object.keys(errors).length;
@@ -158,38 +158,8 @@ export default function Editor({ statement, onChange, onSwitchBank, savedAt, onB
     toast(text);
   }
 
-  const jsonInputRef = useRef(null);
-
-  async function handleOpenJson(file) {
-    if (jsonInputRef.current) jsonInputRef.current.value = '';
-    if (!file) return;
-    try {
-      if (file.size > 5_000_000) throw new Error('File exceeds 5 MB');
-      const parsed = normalizeStatement(JSON.parse(await file.text()));
-      if (!parsed) throw new Error('Not a valid Statement Builder JSON file');
-      onChange(parsed);
-      setShowAllErrors(false);
-      toast('Statement loaded from JSON.');
-    } catch (err) {
-      toast(`Failed to load JSON: ${err.message}`, 'error');
-    }
-  }
-
-  function handleSaveJson() {
-    const data = JSON.stringify(statement, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const aTag = document.createElement('a');
-    aTag.href = url;
-    aTag.download = `statement-${(statement.account?.holderName || 'untitled').toLowerCase().replace(/\s+/g, '-')}.json`;
-    aTag.click();
-    URL.revokeObjectURL(url);
-    toast('Statement saved as JSON file.');
-  }
-
   const outCount = computed.outOfPeriodIds.size;
   const badCount = computed.invalidIds.size;
-  const saveText = savedAt ? `Updated · ${savedAt.toLocaleTimeString()}` : 'Session active';
   const headerTitle = statement.account?.holderName?.trim()
     ? `Statement – ${statement.account.holderName.trim()}`
     : 'Create Statement';
@@ -201,11 +171,7 @@ export default function Editor({ statement, onChange, onSwitchBank, savedAt, onB
         title={headerTitle}
         actions={
           <div className="flex flex-wrap items-center justify-end gap-1.5">
-            <span className="mr-1 text-xs text-gray-500 font-normal">{saveText}</span>
             <Button size="sm" variant="plain" onClick={loadDemo}>Load demo</Button>
-            <Button size="sm" variant="plain" onClick={() => jsonInputRef.current?.click()}>Open JSON</Button>
-            <input ref={jsonInputRef} type="file" accept=".json,application/json" hidden onChange={e => handleOpenJson(e.target.files[0])} />
-            <Button size="sm" variant="plain" onClick={handleSaveJson}>Save JSON</Button>
             <Button size="sm" variant="danger" onClick={resetForm}>Clear</Button>
           </div>
         }

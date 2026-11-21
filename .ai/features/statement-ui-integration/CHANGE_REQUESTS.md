@@ -605,6 +605,22 @@ This section collects and documents the batch of 13 upcoming change requests wit
   3. **Bank-Aware Demo Generation (`demo.js` & `Editor.jsx`)**: `demoStatement(today, bank)` produces authentic bank-specific datasets. For HDFC, it generates authentic HDFC narrations (`UPI-...-PAYMENT`, `NEFT CR-...`, `ACH D-...`), 16-digit reference numbers (`0000...`), HDFC IFSC (`HDFC0000794`), MICR (`411240018`), and branch (`HINJAWADI`). In `Editor.jsx`, `loadDemo()` and `resetForm()` read and preserve the currently active bank.
   4. **Unit Verification (`statement-logic.test.js`)**: Added test coverage verifying that both Kotak and HDFC demo statements generate authentic bank-specific metadata, references, valid periods, and mathematically reconciled ledgers.
 - **Status**: **APPROVED & FULLY IMPLEMENTED**
+
+---
+
+### [CR-035]: Header Action Streamlining (Removal of Open JSON, Save JSON, and Session Active Indicator)
+- **Components**: `src/statements/App.jsx`, `src/statements/components/Editor.jsx`
+- **User Request**: *"Open JSON / Save JSON / Session active / remvove these and no local storage should be used !"*
+- **Category**: UI Streamlining / Header Hygiene & In-Memory Enforcement
+- **Context**:
+  - The card header previously had `Session active` / `Updated · <time>` text, `Open JSON`, and `Save JSON` buttons.
+  - The user requested removing these elements to maintain a clean header focused purely on direct creation (`Load demo` and `Clear`) with zero `localStorage` usage.
+- **Implementation**:
+  1. **Removed JSON File Handlers & Inputs**: Removed `jsonInputRef`, `handleOpenJson`, `handleSaveJson`, and the hidden `<input type="file">` from `Editor.jsx`.
+  2. **Removed Session Active Indicator**: Removed `saveText`, `savedAt` timestamp state and span from `Editor.jsx` and `App.jsx`.
+  3. **Cleaned Header Actions**: Retained only `Load demo` and `Clear` in the `CardHeader` actions slot.
+  4. **Verified Zero LocalStorage**: Confirmed 100% in-memory statement operation (`storage.js`) with zero `localStorage` calls across statement workflows.
+- **Status**: **APPROVED & FULLY IMPLEMENTED**
 ---
 
 ## Approved Design Rules

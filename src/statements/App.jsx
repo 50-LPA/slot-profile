@@ -18,7 +18,6 @@ export default function App() {
       'HDFC Bank': hdfcLoaded || demoStatement(new Date(), 'HDFC Bank'),
     };
   });
-  const [savedAt, setSavedAt] = useState(null);
 
   const statement = bankStores[activeBank] || bankStores['Kotak Mahindra Bank'];
 
@@ -41,7 +40,6 @@ export default function App() {
     if (bankKey !== activeBank) {
       setActiveBank(bankKey);
     }
-    setSavedAt(new Date());
   }, [activeBank]);
 
   // Switches active bank without moving the previous bank's data into the new bank
@@ -57,7 +55,6 @@ export default function App() {
       return prev;
     });
     setActiveBank(bankKey);
-    setSavedAt(new Date());
   }, []);
 
   return (
@@ -67,7 +64,6 @@ export default function App() {
           statement={statement}
           onChange={handleChange}
           onSwitchBank={handleSwitchBank}
-          savedAt={savedAt}
           onBack={null}
         />
       </div>
