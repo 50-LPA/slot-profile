@@ -448,6 +448,21 @@ This section collects and documents the batch of 13 upcoming change requests wit
      - Row 1: `Account number *` (left), `Account status` (right)
      - Row 2: `Branch` (left), `Nominee registered` (right)
 - **Status**: **APPROVED & IMPLEMENTED**
+
+---
+
+### [CR-026] (Item 20): Replace Native Confirms with Styled Dialogs & Modern Alert Banners
+- **Component**: `src/statements/components/Editor.jsx`, `src/statements/components/Dashboard.jsx`, `src/statements/components/TransactionManager.jsx`
+- **User Request**: *"@slot-profile/src/statements/components/Editor.jsx:92 make sure we have our styled UI for this and alerts"*
+- **Category**: UI Polish / Modal & Alert Modernization
+- **Context**:
+  - `loadDemo()` and `resetForm()` in `Editor.jsx` used native browser `window.confirm()` dialogs, which were unstyled and inconsistent with the application's design system.
+  - In-page alerts and warnings rendered using bare `.alert` / `.warnings` CSS classes without vector icons or modern Tailwind styling.
+- **Implementation**:
+  1. **Replaced All Native Confirms**: Integrated `confirmAsk()` and `ask()` from `src/toast.jsx` for `Load demo`, `Clear form`, `Replace transactions` in `Editor.jsx`, `Delete statement` in `Dashboard.jsx`, and `Import JSON` in `TransactionManager.jsx`.
+  2. **Toast Feedback**: Added `toast()` notifications for quick status updates (demo loaded, form cleared, transactions appended/replaced, PDF downloaded).
+  3. **Modern Styled Alerts**: Redesigned in-page notice alerts and warning lists with Tailwind card styling, vector status icons (`ICONS.checkCircle`, `ICONS.warning`, `ICONS.close`), dismiss buttons, and distinct color tones (`emerald`, `amber`, `rose`).
+- **Status**: **APPROVED & FULLY IMPLEMENTED**
 ---
 
 ## Approved Design Rules

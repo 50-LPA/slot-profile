@@ -10,6 +10,7 @@ import TransactionManager from './TransactionManager.jsx';
 import TransactionSeeder from './TransactionSeeder.jsx';
 import { Button, Card, CardHeader } from '../../ui.jsx';
 import { Icon, ICONS } from '../../icons.jsx';
+import { confirmAsk, toast } from '../../toast.jsx';
 
 // Layout: responsive two-column grid inside Card. Left side scrolls naturally, right side PDF preview sticks to top.
 export default function Editor({ statement, onChange, savedAt, persistent, onBack }) {
@@ -37,35 +38,48 @@ export default function Editor({ statement, onChange, savedAt, persistent, onBac
     onChange(next);
   };
 
-  function handleSeedReplace(txs, meta = {}) {
-    if (!meta?.isFiller && statement.transactions.length > 0 && !window.confirm(`Replace all existing ${statement.transactions.length} transactions with ${txs.length} newly generated transactions?`)) {
-      return;
+  async function handleSeedReplace(txs, meta = {}) {
+    if (!meta?.isFiller && statement.transactions.length > 0) {
+      const ok = await confirmAsk({
+        title: 'Replace transactions?',
+        message: `Replace all existing ${statement.transactions.length} transactions with ${txs.length} newly generated transactions?`,
+        ok: 'Replace',
+        danger: true,
+      });
+      if (!ok) return;
     }
     setTransactions(txs);
     if (meta?.isFiller) {
-      setNotice({
-        tone: 'ok',
-        text: `Generated ${meta.addedCount ?? (txs.length - statement.transactions.length)} daily filler transactions across empty dates. All existing transactions and salary credits were preserved.`,
-      });
+      const text = `Generated ${meta.addedCount ?? (txs.length - statement.transactions.length)} daily filler transactions across empty dates. All existing transactions and salary credits were preserved.`;
+      setNotice({ tone: 'ok', text });
+      toast(text);
     } else {
-      setNotice({ tone: 'ok', text: `Generated and loaded ${txs.length} transactions matching Indian store categories & monthly salary.` });
+      const text = `Generated and loaded ${txs.length} transactions matching Indian store categories & monthly salary.`;
+      setNotice({ tone: 'ok', text });
+      toast(text);
     }
   }
 
   function handleSeedAppend(txs) {
     setTransactions(list => [...list, ...txs]);
-    setNotice({ tone: 'ok', text: `Appended ${txs.length} generated transactions.` });
+    const text = `Appended ${txs.length} generated transactions.`;
+    setNotice({ tone: 'ok', text });
+    toast(text);
   }
 
   async function downloadPdf() {
     if (errorCount) {
       setShowAllErrors(true);
-      setNotice({ tone: 'danger', fields: true, text: `Fix ${errorCount} account field${errorCount > 1 ? 's' : ''} before downloading.` });
+      const text = `Fix ${errorCount} account field${errorCount > 1 ? 's' : ''} before downloading.`;
+      setNotice({ tone: 'danger', fields: true, text });
+      toast(text, { tone: 'error' });
       setTimeout(() => document.querySelector('.editor [aria-invalid="true"]')?.focus(), 0); // focus scrolls it into view
       return;
     }
     if (a.encryptPdf && !a.pdfPassword?.trim()) {
-      setNotice({ tone: 'danger', text: 'Please enter a password to encrypt the PDF before downloading.' });
+      const text = 'Please enter a password to encrypt the PDF before downloading.';
+      setNotice({ tone: 'danger', text });
+      toast(text, { tone: 'error' });
       setTimeout(() => document.querySelector('#acc-pdfPassword, .preview-pass-input')?.focus(), 0);
       return;
     }
@@ -77,29 +91,53 @@ export default function Editor({ statement, onChange, savedAt, persistent, onBac
         password: a.pdfPassword,
       });
       if (a.encryptPdf) {
-        setNotice({ tone: 'ok', text: `Downloaded password-protected PDF. Password: "${a.pdfPassword}".` });
+        const text = `Downloaded password-protected PDF. Password: "${a.pdfPassword}".`;
+        setNotice({ tone: 'ok', text });
+        toast(text);
       } else {
-        setNotice({ tone: 'ok', text: 'Downloaded statement PDF.' });
+        const text = 'Downloaded statement PDF.';
+        setNotice({ tone: 'ok', text });
+        toast(text);
       }
     } catch (e) {
-      setNotice({ tone: 'danger', text: `PDF generation failed: ${e.message}` });
+      const text = `PDF generation failed: ${e.message}`;
+      setNotice({ tone: 'danger', text });
+      toast(text, { tone: 'error' });
     } finally {
       setBusy(false);
     }
   }
 
-  function loadDemo() {
-    if ((statement.transactions.length || a.holderName) && !window.confirm('Replace this statement’s details and transactions with demo data?')) return;
+  async function loadDemo() {
+    if (statement.transactions.length || a.holderName) {
+      const ok = await confirmAsk({
+        title: 'Load demo statement?',
+        message: 'Replace this statement’s details and transactions with demo data (~60 transactions)? Existing details will be overwritten.',
+        ok: 'Load demo',
+        danger: true,
+      });
+      if (!ok) return;
+    }
     const demo = demoStatement();
     onChange({ ...statement, account: demo.account, transactions: demo.transactions });
-    setNotice({ tone: 'ok', text: 'Demo data loaded (fictional person, ~60 transactions).' });
+    const text = 'Demo data loaded (fictional person, ~60 transactions).';
+    setNotice({ tone: 'ok', text });
+    toast(text);
   }
 
-  function resetForm() {
-    if (!window.confirm('Clear the form? All account details and transactions in this statement will be cleared.')) return;
+  async function resetForm() {
+    const ok = await confirmAsk({
+      title: 'Clear statement?',
+      message: 'All account details and transactions in this statement will be permanently cleared from this form.',
+      ok: 'Clear form',
+      danger: true,
+    });
+    if (!ok) return;
     onChange({ ...statement, account: blankAccount(), transactions: [] });
     setShowAllErrors(false);
-    setNotice({ tone: 'ok', text: 'Form cleared.' });
+    const text = 'Statement form cleared.';
+    setNotice({ tone: 'ok', text });
+    toast(text);
   }
 
   const outCount = computed.outOfPeriodIds.size;
@@ -128,21 +166,71 @@ export default function Editor({ statement, onChange, savedAt, persistent, onBac
           {/* <SummaryBar computed={computed} currency={a.currency} /> */}
 
           {notice && !(notice.fields && errorCount === 0) && (
-            <div className={`alert ${notice.tone}`} role="status">
-              <div className="alert-row">
-                <span>{notice.text}</span>
-                <button type="button" className="link" onClick={() => setNotice(null)}>Dismiss</button>
+            <div
+              className={`flex items-start justify-between gap-3 rounded-xl border p-3.5 text-xs shadow-2xs transition-all ${
+                notice.tone === 'ok'
+                  ? 'border-emerald-200 bg-emerald-50/90 text-emerald-900'
+                  : notice.tone === 'warn'
+                  ? 'border-amber-200 bg-amber-50/90 text-amber-900'
+                  : 'border-rose-200 bg-rose-50/90 text-rose-900'
+              }`}
+              role="status"
+            >
+              <div className="flex items-start gap-2.5 min-w-0">
+                <Icon
+                  d={notice.tone === 'ok' ? ICONS.checkCircle : notice.tone === 'warn' ? ICONS.warning : ICONS.close}
+                  className={`mt-0.5 h-4 w-4 shrink-0 ${
+                    notice.tone === 'ok' ? 'text-emerald-600' : notice.tone === 'warn' ? 'text-amber-600' : 'text-rose-600'
+                  }`}
+                />
+                <span className="font-semibold leading-relaxed">{notice.text}</span>
               </div>
+              <button
+                type="button"
+                onClick={() => setNotice(null)}
+                className="shrink-0 text-xs font-bold underline underline-offset-2 opacity-75 hover:opacity-100 transition-opacity cursor-pointer"
+              >
+                Dismiss
+              </button>
             </div>
           )}
-          {(errorCount > 0 && showAllErrors) || outCount || badCount || computed.negativeCount ? (
-            <ul className="warnings">
-              {errorCount > 0 && showAllErrors && <li className="danger">{errorCount} account field{errorCount > 1 ? 's need' : ' needs'} attention. PDF download is blocked until fixed.</li>}
-              {outCount > 0 && <li>{outCount} transaction{outCount > 1 ? 's are' : ' is'} dated outside the statement period and not shown on the statement.</li>}
-              {badCount > 0 && <li className="danger">{badCount} transaction{badCount > 1 ? 's are' : ' is'} invalid and left out. Edit to fix.</li>}
-              {computed.negativeCount > 0 && <li>The running balance goes below zero on {computed.negativeCount} transaction{computed.negativeCount > 1 ? 's' : ''}.</li>}
-            </ul>
-          ) : null}
+
+          {((errorCount > 0 && showAllErrors) || outCount || badCount || computed.negativeCount > 0) && (
+            <div className="space-y-2">
+              {errorCount > 0 && showAllErrors && (
+                <div className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50/90 p-3 text-xs font-semibold text-rose-900 shadow-2xs">
+                  <Icon d={ICONS.warning} className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+                  <span>
+                    <strong>{errorCount} account field{errorCount > 1 ? 's need' : ' needs'} attention.</strong> PDF download is blocked until fixed.
+                  </span>
+                </div>
+              )}
+              {outCount > 0 && (
+                <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/90 p-3 text-xs font-semibold text-amber-900 shadow-2xs">
+                  <Icon d={ICONS.warning} className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                  <span>
+                    <strong>{outCount} transaction{outCount > 1 ? 's are' : ' is'} dated outside the statement period</strong> and not shown on the statement.
+                  </span>
+                </div>
+              )}
+              {badCount > 0 && (
+                <div className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50/90 p-3 text-xs font-semibold text-rose-900 shadow-2xs">
+                  <Icon d={ICONS.close} className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+                  <span>
+                    <strong>{badCount} transaction{badCount > 1 ? 's are' : ' is'} invalid</strong> and left out. Edit to fix.
+                  </span>
+                </div>
+              )}
+              {computed.negativeCount > 0 && (
+                <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/90 p-3 text-xs font-semibold text-amber-900 shadow-2xs">
+                  <Icon d={ICONS.warning} className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                  <span>
+                    The running balance goes below zero on <strong>{computed.negativeCount} transaction{computed.negativeCount > 1 ? 's' : ''}</strong>.
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           <AccountForm
             account={a}

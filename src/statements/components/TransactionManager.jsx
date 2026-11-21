@@ -4,6 +4,7 @@ import { newId } from '../lib/model.js';
 import { fillTransactionGaps, parseTransactionsFromJson } from '../lib/seeder.js';
 import { ICONS, Icon } from '../../icons.jsx';
 import { Button, Card } from '../../ui.jsx';
+import { ask, toast } from '../../toast.jsx';
 import DatePicker from './DatePicker.jsx';
 
 export default function TransactionManager({ statement, onTransactions, onAccount, onUpdateStatement }) {
@@ -114,11 +115,17 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
 
       let replace = false;
       if (txns.length > 0) {
-        replace = window.confirm(
-          `Imported ${parsed.transactions.length} transactions (${parsed.isSalaryCredits ? 'Salary Credits' : 'Transactions'}).\n\n` +
-          `Click OK to REPLACE existing ${txns.length} transactions.\n` +
-          `Click Cancel to APPEND to existing transactions.`
-        );
+        const choice = await ask({
+          title: 'Import transactions',
+          message: `Imported ${parsed.transactions.length} transactions (${parsed.isSalaryCredits ? 'Salary Credits' : 'Transactions'}).\n\nChoose whether to replace existing ${txns.length} transactions or append them.`,
+          buttons: [
+            { label: 'Replace existing', value: 'replace', tone: 'danger' },
+            { label: 'Append to existing', value: 'append', tone: 'primary' },
+            { label: 'Cancel', value: null, tone: 'plain' },
+          ],
+        });
+        if (!choice) return;
+        replace = choice === 'replace';
       }
 
       const nextList = replace ? parsed.transactions : [...txns, ...parsed.transactions];

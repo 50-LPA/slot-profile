@@ -8,6 +8,7 @@ import { downloadStatementPdf } from '../pdf/generate.jsx';
 import { go } from '../route.js';
 import { Button, Card, CardHeader } from '../../ui.jsx';
 import { ICONS } from '../../icons.jsx';
+import { confirmAsk, toast } from '../../toast.jsx';
 
 export default function Dashboard({ list, onSave, onDelete, persistent }) {
   const [busyId, setBusyId] = useState(null);
@@ -32,10 +33,18 @@ export default function Dashboard({ list, onSave, onDelete, persistent }) {
     setMsg({ tone: 'ok', text: `Duplicated “${statementTitle(st)}”.` });
   }
 
-  function remove(st) {
-    if (!window.confirm(`Delete “${statementTitle(st)}” and its ${st.transactions.length} transactions?\n\nThis cannot be undone.`)) return;
+  async function remove(st) {
+    const ok = await confirmAsk({
+      title: `Delete “${statementTitle(st)}”?`,
+      message: `Delete this statement and its ${st.transactions.length} transactions? This cannot be undone.`,
+      ok: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     onDelete(st.id);
-    setMsg({ tone: 'ok', text: `Deleted “${statementTitle(st)}”.` });
+    const text = `Deleted “${statementTitle(st)}”.`;
+    setMsg({ tone: 'ok', text });
+    toast(text);
   }
 
   async function download(st) {
