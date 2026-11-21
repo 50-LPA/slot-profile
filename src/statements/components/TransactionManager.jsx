@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { isISODate, plainAmount, todayISO, toPaise } from '../lib/format.js';
 import { newId } from '../lib/model.js';
-import { fillTransactionGaps, parseTransactionsFromJson } from '../lib/seeder.js';
+import { parseTransactionsFromJson } from '../lib/seeder.js';
 import { ICONS, Icon } from '../../icons.jsx';
 import { Button, Card } from '../../ui.jsx';
 import { ask } from '../../toast.jsx';
@@ -11,15 +11,19 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
   const txns = statement.transactions || [];
   const cur = statement.account?.currency || 'INR';
 
+  // Manual transaction editor is strictly for Salary Transactions (Credits only).
+  // Daily debit transactions (generated via "Generate Random Filler Data" or seeder)
+  // are retained in statement.transactions for calculation & PDF preview, but never displayed in manual entry.
+  const salaryTxns = txns.filter(t => t.type === 'credit');
+
   const [msg, setMsg] = useState(null);
-  const [fillingGaps, setFillingGaps] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Appends a new empty transaction form at the end of the ledger
-  function handleAddTransaction() {
+  // Appends a new empty salary credit transaction form at the end of the salary ledger
+  function handleAddSalaryTransaction() {
     let nextDate = statement.account?.periodStart || todayISO();
-    if (txns.length > 0) {
-      const last = txns[txns.length - 1];
+    if (salaryTxns.length > 0) {
+      const last = salaryTxns[salaryTxns.length - 1];
       if (last.date && isISODate(last.date)) {
         const [y, mo, d] = last.date.split('-').map(Number);
         if (y && mo && d) {
@@ -47,16 +51,16 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
     };
 
     onTransactions(list => [...list, newTx]);
-    setMsg({ tone: 'ok', text: `Created transaction #${txns.length + 1}.` });
+    setMsg({ tone: 'ok', text: `Created salary transaction #${salaryTxns.length + 1}.` });
   }
 
-  // Inserts a new empty transaction form in between existing records at targetIndex
+  // Inserts a new empty salary transaction form in between existing records at targetIndex
   function handleInsertAt(targetIndex) {
     let baseDate = statement.account?.periodStart || todayISO();
-    if (targetIndex > 0 && txns[targetIndex - 1]?.date) {
-      baseDate = txns[targetIndex - 1].date;
-    } else if (targetIndex < txns.length && txns[targetIndex]?.date) {
-      baseDate = txns[targetIndex].date;
+    if (targetIndex > 0 && salaryTxns[targetIndex - 1]?.date) {
+      baseDate = salaryTxns[targetIndex - 1].date;
+    } else if (targetIndex < salaryTxns.length && salaryTxns[targetIndex]?.date) {
+      baseDate = salaryTxns[targetIndex].date;
     }
 
     const newTx = {
@@ -69,36 +73,40 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
       type: 'credit',
     };
 
-    onTransactions(list => [
-      ...list.slice(0, targetIndex),
-      newTx,
-      ...list.slice(targetIndex),
-    ]);
-    setMsg({ tone: 'ok', text: `Inserted empty transaction at position #${targetIndex + 1}.` });
+    onTransactions(list => {
+      if (targetIndex >= salaryTxns.length) {
+        return [...list, newTx];
+      }
+      const anchorId = salaryTxns[targetIndex]?.id;
+      const globalIdx = list.findIndex(t => t.id === anchorId);
+      if (globalIdx === -1) return [...list, newTx];
+      return [...list.slice(0, globalIdx), newTx, ...list.slice(globalIdx)];
+    });
+    setMsg({ tone: 'ok', text: `Inserted empty salary transaction at position #${targetIndex + 1}.` });
   }
 
-  // Removes a transaction record at targetIndex
-  function handleRemove(targetIndex) {
-    const removed = txns[targetIndex];
-    onTransactions(list => list.filter((_, idx) => idx !== targetIndex));
+  // Removes a salary transaction record by unique ID
+  function handleRemove(targetId) {
+    const removed = txns.find(t => t.id === targetId);
+    onTransactions(list => list.filter(t => t.id !== targetId));
     setMsg({
       tone: 'ok',
-      text: `Removed transaction #${targetIndex + 1}${removed?.description ? ` (${removed.description})` : ''}.`,
+      text: `Removed salary transaction${removed?.description ? ` (${removed.description})` : ''}.`,
     });
   }
 
-  // Live in-place field updater for any transaction
-  function updateField(index, key, val) {
+  // Live in-place field updater for any salary transaction
+  function updateField(targetId, key, val) {
     onTransactions(list =>
-      list.map((t, idx) => (idx === index ? { ...t, [key]: val } : t))
+      list.map(t => (t.id === targetId ? { ...t, [key]: val, type: 'credit' } : t))
     );
   }
 
   // Formats amount to standard two-decimal paise representation on blur
-  function handleAmountBlur(index, rawVal) {
+  function handleAmountBlur(targetId, rawVal) {
     const p = toPaise(rawVal);
     if (!isNaN(p) && p > 0) {
-      updateField(index, 'amount', plainAmount(p));
+      updateField(targetId, 'amount', plainAmount(p));
     }
   }
 
@@ -113,10 +121,10 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
       const parsed = parseTransactionsFromJson(text, statement.account);
 
       let replace = false;
-      if (txns.length > 0) {
+      if (salaryTxns.length > 0) {
         const choice = await ask({
-          title: 'Import transactions',
-          message: `Imported ${parsed.transactions.length} transactions (${parsed.isSalaryCredits ? 'Salary Credits' : 'Transactions'}).\n\nChoose whether to replace existing ${txns.length} transactions or append them.`,
+          title: 'Import salary transactions',
+          message: `Imported ${parsed.transactions.length} salary transactions.\n\nChoose whether to replace existing ${salaryTxns.length} salary transactions or append them.`,
           buttons: [
             { label: 'Replace existing', value: 'replace', tone: 'danger' },
             { label: 'Append to existing', value: 'append', tone: 'primary' },
@@ -127,7 +135,8 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
         replace = choice === 'replace';
       }
 
-      const nextList = replace ? parsed.transactions : [...txns, ...parsed.transactions];
+      const debits = txns.filter(t => t.type !== 'credit');
+      const nextList = replace ? [...debits, ...parsed.transactions] : [...txns, ...parsed.transactions];
 
       const patch = {};
       if (parsed.minDate && parsed.maxDate) {
@@ -155,47 +164,10 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
 
       setMsg({
         tone: 'ok',
-        text: `Imported ${parsed.transactions.length} transactions from “${file.name}”. Click “Fill gaps with random” to generate daily expenses between salary payments.`,
+        text: `Imported ${parsed.transactions.length} salary transactions from “${file.name}”. Click “Generate Random Filler Data” above to fill daily expenses.`,
       });
     } catch (err) {
       setMsg({ tone: 'danger', text: `Failed to import JSON: ${err.message}` });
-    }
-  }
-
-  function handleFillGaps() {
-    setFillingGaps(true);
-    try {
-      const res = fillTransactionGaps(statement.account, txns);
-      if (res.addedCount === 0) {
-        setMsg({
-          tone: 'warn',
-          text: 'No empty date gaps found to fill. Ensure statement dates are set or import salary transactions first.',
-        });
-        return;
-      }
-
-      const accountPatch = {};
-      if (res.periodStart !== statement.account.periodStart) accountPatch.periodStart = res.periodStart;
-      if (res.periodEnd !== statement.account.periodEnd) accountPatch.periodEnd = res.periodEnd;
-
-      if (onUpdateStatement) {
-        onUpdateStatement({
-          transactions: res.transactions,
-          account: Object.keys(accountPatch).length > 0 ? accountPatch : undefined,
-        });
-      } else {
-        onTransactions(res.transactions);
-        if (onAccount && Object.keys(accountPatch).length > 0) onAccount(accountPatch);
-      }
-
-      setMsg({
-        tone: 'ok',
-        text: `Filled gaps: Generated ${res.addedCount} realistic daily transactions across empty dates. All existing transactions and salary credits were preserved with balanced positive savings.`,
-      });
-    } catch (err) {
-      setMsg({ tone: 'danger', text: `Error filling transaction gaps: ${err.message}` });
-    } finally {
-      setFillingGaps(false);
     }
   }
 
@@ -204,9 +176,9 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
       {/* Top Header & Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
         <div className="flex items-center gap-2">
-          <h2 className="text-base font-bold text-gray-900">Transactions</h2>
+          <h2 className="text-base font-bold text-gray-900">Salary Transactions</h2>
           <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
-            {txns.length}
+            {salaryTxns.length}
           </span>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
@@ -214,8 +186,8 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
             size="sm"
             variant="plain"
             icon={ICONS.plus}
-            onClick={handleAddTransaction}
-            title="Add a new transaction form"
+            onClick={handleAddSalaryTransaction}
+            title="Add a new salary transaction form"
             className="h-8 px-2.5 font-bold text-emerald-700 hover:bg-emerald-50"
           >
             Add transaction
@@ -237,38 +209,27 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
             hidden
             onChange={handleJsonFile}
           />
-          <Button
-            size="sm"
-            variant="plain"
-            icon={ICONS.bolt}
-            disabled={fillingGaps}
-            onClick={handleFillGaps}
-            title="Fill empty days between transactions with realistic daily random debits and credits"
-            className="h-8 px-2.5"
-          >
-            {fillingGaps ? 'Filling…' : 'Fill gaps with random'}
-          </Button>
         </div>
       </div>
 
-      {/* Transactions Multi-Record Form List */}
+      {/* Salary Transactions Multi-Record Form List */}
       <div className="mt-4">
-        {txns.length === 0 ? (
+        {salaryTxns.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50/50 p-6 text-center">
-            <p className="text-xs text-gray-500 mb-3">No transactions added yet.</p>
+            <p className="text-xs text-gray-500 mb-3">No salary transactions added yet.</p>
             <Button
               type="button"
               size="sm"
               variant="primary"
               icon={ICONS.plus}
-              onClick={handleAddTransaction}
+              onClick={handleAddSalaryTransaction}
             >
-              + Add first transaction
+              + Add first salary transaction
             </Button>
           </div>
         ) : (
           <div className="space-y-3.5 max-h-[720px] overflow-y-auto pr-1">
-            {txns.map((tx, idx) => (
+            {salaryTxns.map((tx, idx) => (
               <div
                 key={tx.id || idx}
                 className="relative rounded-xl border border-gray-200 bg-gray-50/60 p-3.5 transition-all hover:border-gray-300 hover:bg-white shadow-2xs"
@@ -277,16 +238,10 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
                 <div className="flex flex-wrap items-center justify-between gap-1.5 mb-2.5 border-b border-gray-200/70 pb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                      Transaction #{idx + 1}
+                      Salary Transaction #{idx + 1}
                     </span>
-                    <span
-                      className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                        tx.type === 'credit'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-rose-100 text-rose-800'
-                      }`}
-                    >
-                      {tx.type || 'credit'}
+                    <span className="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800">
+                      Credit
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
@@ -295,7 +250,7 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
                       size="sm"
                       variant="plain"
                       onClick={() => handleInsertAt(idx)}
-                      title="Insert empty transaction above"
+                      title="Insert empty salary transaction above"
                       className="h-6 px-1.5 text-[11px] text-gray-600 hover:text-emerald-700 hover:bg-emerald-50"
                     >
                       + Insert above
@@ -305,17 +260,17 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
                       size="sm"
                       variant="plain"
                       onClick={() => handleInsertAt(idx + 1)}
-                      title="Insert empty transaction below"
+                      title="Insert empty salary transaction below"
                       className="h-6 px-1.5 text-[11px] text-gray-600 hover:text-emerald-700 hover:bg-emerald-50"
                     >
                       + Insert below
                     </Button>
                     <button
                       type="button"
-                      onClick={() => handleRemove(idx)}
-                      title="Remove this transaction"
+                      onClick={() => handleRemove(tx.id)}
+                      title="Remove this salary transaction"
                       className="inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer transition-colors ml-0.5"
-                      aria-label={`Remove transaction ${idx + 1}`}
+                      aria-label={`Remove salary transaction ${idx + 1}`}
                     >
                       <Icon d={ICONS.trash} className="h-3.5 w-3.5" />
                     </button>
@@ -325,61 +280,61 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
                 {/* Form Grid */}
                 <div className="st-form-grid">
                   <div className="field">
-                    <label htmlFor={`tx-${tx.id || idx}-date`}>
+                    <label htmlFor={`tx-${tx.id}-date`}>
                       Transaction date <span className="req">*</span>
                     </label>
                     <DatePicker
-                      id={`tx-${tx.id || idx}-date`}
+                      id={`tx-${tx.id}-date`}
                       value={tx.date}
-                      onChange={val => updateField(idx, 'date', val)}
+                      onChange={val => updateField(tx.id, 'date', val)}
                       placeholder="dd-mmm-yyyy"
                       required
                     />
                   </div>
                   <div className="field">
-                    <label htmlFor={`tx-${tx.id || idx}-valueDate`}>Value date</label>
+                    <label htmlFor={`tx-${tx.id}-valueDate`}>Value date</label>
                     <DatePicker
-                      id={`tx-${tx.id || idx}-valueDate`}
+                      id={`tx-${tx.id}-valueDate`}
                       value={tx.valueDate}
-                      onChange={val => updateField(idx, 'valueDate', val)}
+                      onChange={val => updateField(tx.id, 'valueDate', val)}
                       placeholder="Blank = same as date"
                     />
                   </div>
                   <div className="field full">
-                    <label htmlFor={`tx-${tx.id || idx}-desc`}>
+                    <label htmlFor={`tx-${tx.id}-desc`}>
                       Description <span className="req">*</span>
                     </label>
                     <input
-                      id={`tx-${tx.id || idx}-desc`}
+                      id={`tx-${tx.id}-desc`}
                       type="text"
                       maxLength={160}
                       value={tx.description || ''}
-                      onChange={e => updateField(idx, 'description', e.target.value)}
+                      onChange={e => updateField(tx.id, 'description', e.target.value)}
                       placeholder="e.g. Salary credit - Demo Technologies Pvt Ltd"
                     />
                   </div>
                   <div className="field">
-                    <label htmlFor={`tx-${tx.id || idx}-ref`}>Chq/Ref. No.</label>
+                    <label htmlFor={`tx-${tx.id}-ref`}>Chq/Ref. No.</label>
                     <input
-                      id={`tx-${tx.id || idx}-ref`}
+                      id={`tx-${tx.id}-ref`}
                       type="text"
                       maxLength={30}
                       value={tx.reference || ''}
-                      onChange={e => updateField(idx, 'reference', e.target.value)}
+                      onChange={e => updateField(tx.id, 'reference', e.target.value)}
                       placeholder="Demo reference"
                     />
                   </div>
                   <div className="field">
-                    <label htmlFor={`tx-${tx.id || idx}-amt`}>
+                    <label htmlFor={`tx-${tx.id}-amt`}>
                       Amount ({cur}) <span className="req">*</span>
                     </label>
                     <input
-                      id={`tx-${tx.id || idx}-amt`}
+                      id={`tx-${tx.id}-amt`}
                       type="text"
                       inputMode="decimal"
                       value={tx.amount || ''}
-                      onChange={e => updateField(idx, 'amount', e.target.value)}
-                      onBlur={e => handleAmountBlur(idx, e.target.value)}
+                      onChange={e => updateField(tx.id, 'amount', e.target.value)}
+                      onBlur={e => handleAmountBlur(tx.id, e.target.value)}
                       placeholder="0.00"
                     />
                   </div>
@@ -392,10 +347,10 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
               variant="primary"
               size="md"
               icon={ICONS.plus}
-              onClick={handleAddTransaction}
+              onClick={handleAddSalaryTransaction}
               className="w-full mt-3 font-semibold"
             >
-              + Add next transaction
+              + Add next salary transaction
             </Button>
           </div>
         )}
