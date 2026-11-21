@@ -328,6 +328,25 @@ This section collects and documents the batch of 13 upcoming change requests wit
      - Display a success toast notification: `"Successfully imported X transactions and account details from Kotak/HDFC statement."`
 - **Status**: **DOCUMENTED (Ready for implementation)**
 
+### [CR-020] (Item 14): Rename "Reset" Header Button Label to "Clear"
+- **Component**: `src/statements/components/Editor.jsx`
+- **User Request**: *"rename reset label to clear"*
+- **Screenshot**: `uploaded_media_1795283552165.png` (red circle around `Reset` button in editor header)
+- **Category**: Top Header & Toolbar Simplification
+- **Context**:
+  - In `Editor.jsx` (line 141), the button that resets statement fields back to a blank template is labeled "Reset":
+    ```jsx
+    <Button size="sm" variant="danger" onClick={resetForm}>Reset</Button>
+    ```
+  - "Clear" is more intuitive and user-friendly for emptying or clearing all filled form entries.
+- **Proposed Solution**:
+  - Update the button label from "Reset" to "Clear":
+    ```jsx
+    <Button size="sm" variant="danger" onClick={resetForm}>Clear</Button>
+    ```
+  - Keep the confirmation prompt (`"Clear all account details and transactions in this statement? This cannot be undone."`) and resetting logic intact.
+- **Status**: **DOCUMENTED (Ready for implementation)**
+
 ---
 
 ## Approved Design Rules
