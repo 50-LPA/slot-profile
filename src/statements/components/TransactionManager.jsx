@@ -3,6 +3,7 @@ import { money, plainAmount, todayISO, toPaise } from '../lib/format.js';
 import { blankTransaction, newId } from '../lib/model.js';
 import { fillTransactionGaps, parseTransactionsFromJson } from '../lib/seeder.js';
 import { validateTransaction } from '../lib/validate.js';
+import { ICONS, Icon } from '../../icons.jsx';
 import DatePicker from './DatePicker.jsx';
 
 export default function TransactionManager({ statement, onTransactions, onAccount, onUpdateStatement }) {
@@ -85,7 +86,7 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
 
       setMsg({
         tone: 'ok',
-        text: `Imported ${parsed.transactions.length} transactions from “${file.name}”. Click “⚡ Fill gaps with random” to generate daily expenses between salary payments.`,
+        text: `Imported ${parsed.transactions.length} transactions from “${file.name}”. Click “Fill gaps with random” to generate daily expenses between salary payments.`,
       });
     } catch (err) {
       setMsg({ tone: 'danger', text: `Failed to import JSON: ${err.message}` });
@@ -120,7 +121,7 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
 
       setMsg({
         tone: 'ok',
-        text: `⚡ Filled gaps: Generated ${res.addedCount} realistic daily transactions across empty dates. All existing transactions and salary credits were preserved with balanced positive savings.`,
+        text: `Filled gaps: Generated ${res.addedCount} realistic daily transactions across empty dates. All existing transactions and salary credits were preserved with balanced positive savings.`,
       });
     } catch (err) {
       setMsg({ tone: 'danger', text: `Error filling transaction gaps: ${err.message}` });
@@ -146,11 +147,12 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
           <div className="tx-helper-actions">
             <button
               type="button"
-              className="btn btn-sm"
+              className="btn btn-sm inline-flex items-center gap-1.5"
               onClick={() => fileInputRef.current?.click()}
               title="Import salary credits or transactions from a JSON file"
             >
-              📥 Import JSON
+              <Icon d={ICONS.import} className="h-3.5 w-3.5" />
+              Import JSON
             </button>
             <input
               ref={fileInputRef}
@@ -161,12 +163,13 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
             />
             <button
               type="button"
-              className="btn btn-sm"
+              className="btn btn-sm inline-flex items-center gap-1.5"
               disabled={fillingGaps}
               onClick={handleFillGaps}
               title="Fill empty days between transactions with realistic daily random debits"
             >
-              {fillingGaps ? 'Filling…' : '⚡ Fill gaps with random'}
+              <Icon d={ICONS.bolt} className="h-3.5 w-3.5" />
+              {fillingGaps ? 'Filling…' : 'Fill gaps with random'}
             </button>
           </div>
         </div>

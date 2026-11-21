@@ -42,7 +42,7 @@
 ### 2. Streamlining Seeder UI to 1-Click Action
 - In `app/components/TransactionSeeder.jsx` (and its placement in `Editor.jsx`):
   - Remove all input controls: min/max frequency, mode selectors, sender names, salary day, and custom monthly table overrides.
-  - Expose a single primary action button: `[ ⚡ Generate Random Data ]`.
+  - Expose a single primary action button: `[ Generate Random Data ]`.
   - Automatically seeds realistic daily debits and 1 monthly credit based on `account.periodStart` and `account.periodEnd`.
 
 ---

@@ -2,6 +2,7 @@
 // Values stay plain text (see the format helpers in resume.js).
 import { useId } from 'react'
 import { MON, SCORE_UNITS, formatMonthYear, formatScore, parseMonthYear, parseScore, splitList, toggleInList } from './resume.js'
+import { ICONS, Icon } from './icons.jsx'
 
 export const inp = 'mt-0.5 w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-800 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100'
 export const sel = 'rounded-md border border-gray-300 bg-white px-1.5 py-1.5 text-sm text-gray-800 outline-none focus:border-brand-400'
@@ -109,8 +110,9 @@ export function Chips({ label, value, onChange, options, placeholder }) {
           const on = chosen.includes(o.toLowerCase())
           return (
             <button key={o} type="button" aria-pressed={on} onClick={() => onChange(toggleInList(value, o))}
-              className={`rounded-full border px-2 py-0.5 text-[11px] ${on ? 'border-brand-600 bg-brand-600 text-white' : 'border-gray-300 bg-white text-gray-600 hover:border-brand-300'}`}>
-              {on ? '✓' : '+'} {o}
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] ${on ? 'border-brand-600 bg-brand-600 text-white' : 'border-gray-300 bg-white text-gray-600 hover:border-brand-300'}`}>
+              <Icon d={on ? ICONS.check : ICONS.plus} className="h-3 w-3 flex-none" />
+              <span>{o}</span>
             </button>
           )
         })}

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { fillTransactionGaps, generateSeedTransactions, parseLocalDate } from '../lib/seeder.js';
 import { CORPORATE_SALARY_PRESETS, pickRandom } from '../lib/indianMerchants.js';
+import { ICONS, Icon } from '../../icons.jsx';
 
 /**
  * Clean, single-action Transaction Seeder.
@@ -71,21 +72,19 @@ export default function TransactionSeeder({ account, transactions = [], onSeed }
   const btnLabel = generating
     ? 'Generating…'
     : hasExisting
-    ? '⚡ Generate Random Filler Data'
-    : '⚡ Generate Random Data';
+    ? 'Generate Random Filler Data'
+    : 'Generate Random Data';
 
   return (
- 
-        
-          <button
-            type="button"
-            className="btn btn-sm"
-            disabled={!hasValidDates || generating}
-            onClick={handleGenerate}
-            title={hasValidDates ? (hasExisting ? 'Fill empty days between salary payments with daily debits' : `Generate transactions from ${account.periodStart} to ${account.periodEnd}`) : 'Set statement dates first'}
-          >
-            {btnLabel}
-          </button>
-
+    <button
+      type="button"
+      className="btn btn-sm inline-flex items-center gap-1.5"
+      disabled={!hasValidDates || generating}
+      onClick={handleGenerate}
+      title={hasValidDates ? (hasExisting ? 'Fill empty days between salary payments with daily debits' : `Generate transactions from ${account.periodStart} to ${account.periodEnd}`) : 'Set statement dates first'}
+    >
+      <Icon d={ICONS.bolt} className="h-3.5 w-3.5" />
+      <span>{btnLabel}</span>
+    </button>
   );
 }

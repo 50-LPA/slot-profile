@@ -36,12 +36,12 @@ export function CareerTimeline({ passOut, companies }) {
     <div className="flex h-[40mm] shrink-0 flex-col mobile:h-auto">
       <div className="flex flex-wrap items-center gap-[1.5mm]">
         <b className="mr-[1mm] text-[9pt]">CAREER TIMELINE</b>
-        {t.passOut && <Chip className="border-brand-300 bg-brand-50 text-brand-800">🎓 Pass-out <b>{t.passOut.label}</b></Chip>}
+        {t.passOut && <Chip className="border-brand-300 bg-brand-50 text-brand-800"><Icon d={ICONS.graduationCap} className="mr-1 inline h-3.5 w-3.5 align-[-0.15em]" />Pass-out <b>{t.passOut.label}</b></Chip>}
         {exp !== null && <Chip>Experience <b>{span(exp)}</b> · {t.jobs.length} {t.jobs.length === 1 ? 'company' : 'companies'}</Chip>}
         {current && <Chip className="border-emerald-300 bg-emerald-50 text-emerald-800">Now at <b>{current.name || 'Company'}</b></Chip>}
         {gapTotal > 0
           ? <Chip className="border-red-300 bg-red-50 text-red-700">Career gap <b>{span(gapTotal)}</b>{t.gaps.length > 1 ? ` (${t.gaps.length} gaps)` : ''}</Chip>
-          : <Chip className="border-emerald-300 bg-emerald-50 text-emerald-800">✓ No career gaps</Chip>}
+          : <Chip className="border-emerald-300 bg-emerald-50 text-emerald-800"><Icon d={ICONS.check} className="mr-1 inline h-3.5 w-3.5 align-[-0.15em]" />No career gaps</Chip>}
       </div>
 
       {/* track: top margin leaves room for narrow-gap callouts; edge labels hang into the sheet padding */}
@@ -205,7 +205,7 @@ export function CareerFields({ passOut, companies, onPassOut, onCompanies }) {
 // Side-panel list of gaps with start, end and length (narrow gaps are hard to read on the timeline).
 function GapList({ passOut, companies }) {
   const list = gaps(passOut, companies)
-  if (!list.length) return passOut || companies.some((c) => c.from) ? <p className="text-xs text-emerald-700">✓ No career gaps</p> : null
+  if (!list.length) return passOut || companies.some((c) => c.from) ? <p className="inline-flex items-center gap-1 text-xs text-emerald-700"><Icon d={ICONS.check} className="h-3.5 w-3.5 flex-none" />No career gaps</p> : null
   const total = list.reduce((sum, g) => sum + g.months, 0)
   return (
     <div className="rounded-lg border border-red-200 bg-red-50/50 p-2.5">

@@ -31,10 +31,26 @@ This document tracks all user change requests, visual refinements, design rules,
 
 ---
 
+### [CR-003] Zero-Emoji Policy: Replacement with Scalable Vector Icons
+- **Date**: 2026-11-21
+- **Components**: `src/icons.jsx`, `src/fields.jsx`, `src/Career.jsx`, `src/ProfileForm.jsx`, `src/ResumeEditor.jsx`, `src/statements/components/TransactionManager.jsx`, `src/statements/components/TransactionSeeder.jsx`
+- **User Request**: *"replace all emojies with there replacement in fontawesome icons also check if any emojie missed , as we dont allows the emojies only fontawesome icons are allowed"*
+- **Rationale / Rule**:
+  - Emojis render inconsistently across different operating systems (macOS, Windows, Android, Linux), vary in color, size, baseline alignment, and lack brand consistency.
+  - Scalable vector icons in `src/icons.jsx` match Tailwind color utilities, adhere to theme strokes, and align cleanly with text baselines.
+- **Status**: **APPROVED & IMPLEMENTED**
+- **Changes**:
+  - Added vector icon definitions (`graduationCap`, `bolt`, `import`, `warning`, `star`) to `src/icons.jsx`.
+  - Replaced all raw unicode emojis and checkmarks with `<Icon d={ICONS.xxx} />` and Tailwind dot badges.
+  - Cleaned up emojis in documentation files to maintain clean regex compliance.
+
+---
+
 ## Approved Design Rules
 1. **Form Hierarchy**: Primary selector/classifier fields that govern the entire document template (e.g. `Bank Name`) should span full width (`full: true`) at the top of fieldsets.
 2. **Balanced 2-Column Grids**: When reordering or expanding fields in `.st-form-grid`, verify that remaining fields pair symmetrically without leaving unintended single-column holes.
 3. **No Unscoped Leaks**: Form styles and field spans must remain strictly scoped within `.statement-root` to prevent bleeding into the Resume Builder or Candidate lists.
+4. **Zero Emoji Invariant**: No raw unicode emojis (`🎓`, `⚡`, `📥`, `✓`, `●`, `★`, `⚠`) in UI buttons, chips, or labels. Always use scalable vector icons from `src/icons.jsx`.
 
 ---
 

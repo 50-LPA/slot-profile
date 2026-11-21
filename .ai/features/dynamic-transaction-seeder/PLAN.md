@@ -28,5 +28,5 @@
   - [x] Verified with `npm test` and `npm run build`.
 - [x] **UI Simplification (`TransactionSeeder.jsx` / `Editor.jsx`)**:
   - [x] Strip out parameter inputs, frequency controls, and override tables.
-  - [x] Replace with a single primary button: `[ ⚡ Generate Random Data ]`.
+  - [x] Replace with a single primary button: `[ Generate Random Data ]`.
   - [x] Automatically wire active `account.periodStart` and `account.periodEnd` with smart default configurations (5-10 daily debits with category bounds, 1 monthly salary credit).

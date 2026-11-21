@@ -25,7 +25,7 @@ Official Indian bank statements (HDFC, Kotak, SBI, ICICI, etc.) are frequently i
    - Add `encryptPdf` (boolean) and `pdfPassword` (string) to `account` in `app/lib/model.js`.
    - Persist settings across sessions and exported JSON statements.
 4. **UI Integration**:
-   - Provide inline toggle (`🔒 Protect with password`) and password input right beside the "Download PDF" button in the preview pane.
+   - Provide inline toggle (`Protect with password`) and password input right beside the "Download PDF" button in the preview pane.
    - Also expose the setting under "PDF Security & Password Protection" in `AccountForm.jsx`.
    - Require password entry if protection is enabled before initiating download.
 

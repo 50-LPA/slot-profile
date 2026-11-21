@@ -70,7 +70,7 @@ function paginate(root, d) {
   return pages.length
 }
 
-const ALL_KEYS = '★ All common keys'
+const ALL_KEYS = 'All common keys'
 const JUMPS = [['stack', 'Stack'], ['header', 'Header'], ['summary', 'Summary'], ['skills', 'Skills'], ['experience', 'Experience'], ['projects', 'Projects'],
   ['education', 'Education'], ['achievements', 'Achievements'], ['about', 'About'], ['personal', 'Personal']]
 const jump = (id) => {
@@ -278,7 +278,7 @@ export default function ResumeEditor({ candidate, resume, onSave, onBack, draftK
           backLabel="Back"
           title={`Resume · ${candidate.name || 'Candidate'}`}
           actions={<>
-            <span className="px-1 text-xs text-gray-500" title="Ctrl/Cmd + S saves">{dirty ? '● Unsaved changes' : '✓ Saved'}</span>
+            <span className="px-1 text-xs text-gray-500" title="Ctrl/Cmd + S saves">{dirty ? <><span className="mr-1 inline-block h-2 w-2 rounded-full bg-amber-500 align-middle" />Unsaved changes</> : <><Icon d={ICONS.check} className="mr-1 inline h-3.5 w-3.5 text-emerald-600 align-[-0.1em]" />Saved</>}</span>
             <Button variant="plain" icon={ICONS.refresh} onClick={pull}>Pull from profile</Button>
             <Button variant="dark" icon={ICONS.document} onClick={pdf} disabled={!ok} title={ok ? '' : `Add at least ${SUMMARY_MIN} summary points`}>Download PDF</Button>
             <Button icon={ICONS.check} onClick={save} disabled={saving || !dirty} title="Save (Ctrl/Cmd + S)">{saving ? 'Saving…' : 'Save'}</Button>
@@ -303,8 +303,9 @@ export default function ResumeEditor({ candidate, resume, onSave, onBack, draftK
                   const on = tech.includes(t)
                   return (
                     <button key={t} type="button" aria-pressed={on} onClick={() => setStack(on ? tech.filter((x) => x !== t) : [...tech, t])}
-                      className={`rounded-full border px-2.5 py-1 text-xs ${on ? 'border-brand-600 bg-brand-600 font-bold text-white' : 'border-gray-300 bg-white text-gray-600 hover:border-brand-300'}`}>
-                      {on ? '✓' : '+'} {t}
+                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs ${on ? 'border-brand-600 bg-brand-600 font-bold text-white' : 'border-gray-300 bg-white text-gray-600 hover:border-brand-300'}`}>
+                      <Icon d={on ? ICONS.check : ICONS.plus} className="h-3 w-3 flex-none" />
+                      <span>{t}</span>
                     </button>
                   )
                 })}
@@ -345,7 +346,7 @@ export default function ResumeEditor({ candidate, resume, onSave, onBack, draftK
                   : <div key={i} className="relative mb-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 pr-11">
                       <span className="absolute right-1 top-1 flex flex-col items-center">{itemTools(list, i, one)}</span>
                       <div className="grid grid-cols-2 gap-x-2.5 gap-y-1.5 xl:grid-cols-4">{fields.map((f) => field(list, i, item, f))}</div>
-                      {datesProblem(item.start, item.end) && <p className="mt-1 text-[11px] text-red-600">⚠ {datesProblem(item.start, item.end)}: check From and To.</p>}
+                      {datesProblem(item.start, item.end) && <p className="mt-1 flex items-center gap-1 text-[11px] text-red-600"><Icon d={ICONS.warning} className="h-3.5 w-3.5 flex-none" /> {datesProblem(item.start, item.end)}: check From and To.</p>}
                     </div>)}
               </div>
               <div className="flex flex-wrap items-center gap-2">

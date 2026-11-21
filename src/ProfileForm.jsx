@@ -219,7 +219,7 @@ function AdvancePaid({ value, onChange }) {
       <button type="button" onClick={() => onChange(String(ADVANCE_DUE))}
         className="ml-[2mm] rounded-full border border-gray-300 px-2 text-[8pt] text-gray-600 hover:bg-gray-50">Full</button>
       <p className={`mt-[1mm] text-[9.5pt] font-bold ${tone}`}>
-        {a.status === 'paid' ? '✓ Fully paid' : a.status === 'partial' ? `Partially paid · ₹ ${a.due.toLocaleString('en-IN')} due` : 'Unpaid'}
+        {a.status === 'paid' ? <><Icon d={ICONS.check} className="mr-1 inline h-3.5 w-3.5 align-[-0.1em]" />Fully paid</> : a.status === 'partial' ? `Partially paid · ₹ ${a.due.toLocaleString('en-IN')} due` : 'Unpaid'}
       </p>
     </div>
   )
@@ -287,7 +287,7 @@ export default function ProfileForm({ record, readOnly, onEdit, onSave, onBack, 
           <Segmented label="Profile phase" options={PHASES} value={f.phase} onChange={set('phase')} disabled={readOnly}
             border="border-gray-300" idle="text-gray-500 enabled:hover:bg-gray-50"
             activeClass={(v) => (v === 'confirmed' ? 'bg-emerald-500' : 'bg-gray-500') + ' text-white'} />
-          <span className="px-1 text-xs text-gray-500">{readOnly ? 'View only' : dirty ? '● Unsaved changes' : record ? '✓ Saved' : ''}</span>
+          <span className="px-1 text-xs text-gray-500">{readOnly ? 'View only' : dirty ? <><span className="mr-1 inline-block h-2 w-2 rounded-full bg-amber-500 align-middle" />Unsaved changes</> : record ? <><Icon d={ICONS.check} className="mr-1 inline h-3.5 w-3.5 text-emerald-600 align-[-0.1em]" />Saved</> : ''}</span>
           {onDelete && <Button variant="danger" icon={ICONS.trash} onClick={onDelete}>Delete</Button>}
           {onResume && <Button variant="plain" icon={ICONS.document} onClick={onResume}>Resume</Button>}
           {readOnly
