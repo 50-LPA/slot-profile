@@ -3,8 +3,8 @@ import { money, plainAmount, todayISO, toPaise } from '../lib/format.js';
 import { blankTransaction, newId } from '../lib/model.js';
 import { fillTransactionGaps, parseTransactionsFromJson } from '../lib/seeder.js';
 import { validateTransaction } from '../lib/validate.js';
-import { ICONS, Icon } from '../../icons.jsx';
-import { Button, Card, CardHeader } from '../../ui.jsx';
+import { ICONS } from '../../icons.jsx';
+import { Button, Card } from '../../ui.jsx';
 import DatePicker from './DatePicker.jsx';
 
 export default function TransactionManager({ statement, onTransactions, onAccount, onUpdateStatement }) {
@@ -13,7 +13,7 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
   const m = p => money(p, cur);
 
   const lastDate = () => txns.reduce((d, t) => (t.date > d ? t.date : d), '') || statement.account.periodStart || todayISO();
-  const [draft, setDraft] = useState(() => blankTransaction(lastDate()));
+  const [draft, setDraft] = useState(() => ({ ...blankTransaction(lastDate()), type: 'credit' }));
   const [errors, setErrors] = useState({});
   const [msg, setMsg] = useState(null);
   const [fillingGaps, setFillingGaps] = useState(false);
@@ -23,22 +23,15 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
 
   const set = patch => setDraft(d => ({ ...d, ...patch }));
 
-  function handleAddEntry() {
-    const newTx = { ...blankTransaction(lastDate()), description: 'UPI - Payment', amount: '100.00', type: 'debit' };
-    onTransactions(list => [...list, newTx]);
-    setMsg({ tone: 'ok', text: 'Added new transaction entry.' });
-  }
-
-  function handleRemoveLast() {
-    if (txns.length === 0) return;
-    const last = txns[txns.length - 1];
-    onTransactions(list => list.slice(0, -1));
-    setMsg({ tone: 'ok', text: `Removed transaction: “${last.description || 'Untitled'}”.` });
-  }
-
   function submit(e) {
     e.preventDefault();
-    const t = { ...draft, description: draft.description.trim(), reference: draft.reference.trim(), amount: draft.amount.trim() };
+    const t = {
+      ...draft,
+      description: draft.description.trim(),
+      reference: draft.reference.trim(),
+      amount: draft.amount.trim(),
+      type: 'credit',
+    };
     const errs = validateTransaction(t);
     setErrors(errs);
     if (Object.keys(errs).length) {
@@ -47,8 +40,8 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
     }
     t.amount = plainAmount(toPaise(t.amount));
     onTransactions(list => [...list, { ...t, id: newId() }]);
-    setMsg({ tone: 'ok', text: `Added: ${t.description} (${t.type} ${m(toPaise(t.amount))}).` });
-    setDraft({ ...blankTransaction(t.date), type: t.type });
+    setMsg({ tone: 'ok', text: `Added credit: ${t.description} (${m(toPaise(t.amount))}).` });
+    setDraft({ ...blankTransaction(t.date), type: 'credit' });
     setErrors({});
     descRef.current?.focus();
   }
@@ -155,65 +148,44 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
 
   return (
     <Card className="mt-4">
-      <CardHeader
-        title={
-          <div className="flex items-center gap-2">
-            <span>Transactions</span>
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
-              {txns.length}
-            </span>
-          </div>
-        }
-        actions={
-          <div className="flex flex-wrap items-center justify-end gap-1.5">
-            <Button
-              size="sm"
-              variant="plain"
-              icon={ICONS.plus}
-              onClick={handleAddEntry}
-              title="Add a new transaction entry manually"
-              className="h-8 px-2 font-bold text-emerald-700 hover:bg-emerald-50"
-            />
-            <Button
-              size="sm"
-              variant="plain"
-              icon={ICONS.minus}
-              onClick={handleRemoveLast}
-              disabled={txns.length === 0}
-              title="Remove the last transaction entry"
-              className="h-8 px-2 text-rose-700 hover:bg-rose-50 disabled:opacity-40"
-            />
-            <Button
-              size="sm"
-              variant="plain"
-              icon={ICONS.import}
-              onClick={() => fileInputRef.current?.click()}
-              title="Import salary credits or transactions from a JSON file"
-              className="h-8 px-2.5"
-            >
-              Import JSON
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json,application/json"
-              hidden
-              onChange={handleJsonFile}
-            />
-            <Button
-              size="sm"
-              variant="plain"
-              icon={ICONS.bolt}
-              disabled={fillingGaps}
-              onClick={handleFillGaps}
-              title="Fill empty days between transactions with realistic daily random debits and credits"
-              className="h-8 px-2.5"
-            >
-              {fillingGaps ? 'Filling…' : 'Fill gaps with random'}
-            </Button>
-          </div>
-        }
-      />
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-bold text-gray-900">Transactions</h2>
+          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+            {txns.length}
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          <Button
+            size="sm"
+            variant="plain"
+            icon={ICONS.import}
+            onClick={() => fileInputRef.current?.click()}
+            title="Import salary credits or transactions from a JSON file"
+            className="h-8 px-2.5"
+          >
+            Import JSON
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            hidden
+            onChange={handleJsonFile}
+          />
+          <Button
+            size="sm"
+            variant="plain"
+            icon={ICONS.bolt}
+            disabled={fillingGaps}
+            onClick={handleFillGaps}
+            title="Fill empty days between transactions with realistic daily random debits and credits"
+            className="h-8 px-2.5"
+          >
+            {fillingGaps ? 'Filling…' : 'Fill gaps with random'}
+          </Button>
+        </div>
+      </div>
 
       <form ref={formRef} className="mt-4 group tx-form" onSubmit={submit} noValidate aria-label="Add transaction">
         <div className="st-form-grid tx-grid">
@@ -246,7 +218,7 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
           </div>
           <div className="field full">
             <label htmlFor="tx-description">Description <span className="req" aria-hidden="true">*</span></label>
-            <input ref={descRef} maxLength={160} placeholder="e.g. UPI - Demo Grocery Mart" {...fieldProps('description')} />
+            <input ref={descRef} maxLength={160} placeholder="e.g. Salary credit - Demo Technologies Pvt Ltd" {...fieldProps('description')} />
             {err('description')}
           </div>
           <div className="field">
@@ -259,38 +231,8 @@ export default function TransactionManager({ statement, onTransactions, onAccoun
             <input inputMode="decimal" placeholder="0.00" {...fieldProps('amount')} />
             {err('amount')}
           </div>
-          <div className="field">
-            <span className="label" id="tx-type-label">Type</span>
-            <div className="flex h-[34px] overflow-hidden rounded-md border border-gray-300 bg-white text-xs font-semibold" role="group" aria-labelledby="tx-type-label">
-              <button
-                type="button"
-                className={`flex-1 flex items-center justify-center transition-colors cursor-pointer ${
-                  draft.type === 'debit'
-                    ? 'bg-rose-600 text-white font-bold shadow-xs'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-                onClick={() => set({ type: 'debit' })}
-                aria-pressed={draft.type === 'debit'}
-              >
-                Debit
-              </button>
-              <div className="w-[1px] bg-gray-300" />
-              <button
-                type="button"
-                className={`flex-1 flex items-center justify-center transition-colors cursor-pointer ${
-                  draft.type === 'credit'
-                    ? 'bg-emerald-600 text-white font-bold shadow-xs'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-                onClick={() => set({ type: 'credit' })}
-                aria-pressed={draft.type === 'credit'}
-              >
-                Credit
-              </button>
-            </div>
-          </div>
-          <div className="field tx-actions">
-            <Button type="submit" variant="primary" size="md" className="w-full">Add transaction</Button>
+          <div className="field full tx-actions">
+            <Button type="submit" variant="primary" size="md" className="w-full">Add credit transaction</Button>
           </div>
         </div>
       </form>

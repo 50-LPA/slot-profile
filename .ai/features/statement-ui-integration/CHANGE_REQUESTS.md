@@ -348,6 +348,24 @@ This section collects and documents the batch of 13 upcoming change requests wit
     ```
   - Keep the confirmation prompt (`"Clear all account details and transactions in this statement? This cannot be undone."`) and resetting logic intact.
 - **Status**: **APPROVED & IMPLEMENTED (Batch 3)**
+
+---
+
+### [CR-021] (Item 15): Lock Manual Transactions to Credits Only & Remove Redundant Buttons
+- **Component**: `src/statements/components/TransactionManager.jsx`
+- **User Request**: *"manual transtion would cred only no debt so remve these bts"*
+- **Screenshot**: `uploaded_media_1795285045939.png` (red circle around Transactions card header and actions)
+- **Category**: Manual Ledger Workflow Simplification
+- **Context**:
+  - In typical statement creation for candidate profiles, manual entries are strictly used for recurring or specific incoming salary/inflow deposits. Daily debit expenditures (food, groceries, commute) are automatically populated via the gap filler / random seeder.
+  - Having a manual Debit/Credit segmented toggle and top-right `+`/`−` dummy entry manipulation buttons created visual clutter and confusion. Furthermore, the generic `CardHeader` component rendered an unintended back arrow (`←`) button.
+- **Proposed Solution**:
+  1. Remove `+` and `−` action buttons from the Transactions card header.
+  2. Replace `CardHeader` with a dedicated flex container to eliminate the stray `←` back arrow.
+  3. Remove the `[ Debit ] [ Credit ]` type toggle buttons from the "Add transaction" form.
+  4. Lock manual transactions strictly to `type: 'credit'`.
+  5. Symmetrically structure the form grid with a full-width "Add credit transaction" button.
+- **Status**: **APPROVED & IMPLEMENTED**
 ---
 
 ## Approved Design Rules
